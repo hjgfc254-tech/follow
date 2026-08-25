@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>غير مصرح | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <style>
+        .unauthorized-icon {
+            font-size: 64px;
+            color: var(--red);
+            margin-bottom: 16px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .unauthorized-code {
+            font-family: var(--font-numbers);
+            font-size: 72px;
+            font-weight: 800;
+            color: var(--red);
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="card-accent-bar"></div>
+            
+            <div class="card-body text-center">
+                <!-- كود الخطأ -->
+                <div class="unauthorized-code">403</div>
+                
+                <!-- الأيقونة -->
+                <div class="unauthorized-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                
+                <!-- العنوان -->
+                <h2 class="auth-title">عذرًا، ليس لديك صلاحية للوصول</h2>
+                
+                <!-- الرسالة -->
+                <p class="auth-subtitle">
+                    ليس لديك الصلاحية للوصول إلى هذه الصفحة.<br>
+                    إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع إدارة المدرسة.
+                </p>
+                
+                <!-- الأزرار -->
+                <div class="d-flex gap-2 justify-center flex-wrap mt-3">
+                    <button class="btn btn-primary" onclick="goBack()">
+                        <i class="fas fa-arrow-right"></i>
+                        العودة
+                    </button>
+                    <button class="btn btn-outline" onclick="goHome()">
+                        <i class="fas fa-home"></i>
+                        الرئيسية
+                    </button>
+                </div>
+                
+                <!-- التذييل -->
+                <div class="auth-footer">
+                    <span>إنشاء وبرمجة أ/ اسماعيل عماد</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function goBack() {
+            if (document.referrer) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+        
+        function goHome() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

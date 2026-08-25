@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الرسائل | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments, getStudentsByClassIds, createDocument, updateDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, validateRequired, formatDate } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'messages';
+        
+        let currentUser = null;
+        let teacherData = null;
+        let teacherStudents = [];
+        let allMessages = [];
+        let currentView = 'inbox';
+        
+        async function initMessages() {
+            try {
+                currentUser = await requireAuth('teacher');
+                if (!currentUser) return;
+                
+                if (!isTeacher(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                teacherData = await getDocument('teachers', currentUser.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = { classIds: [] };
+                }
+                
+                const classIds = teacherData.classIds || [];
+                
+                // تحميل الطلاب المسندين فقط
+                const [students, received, sent] = await Promise.all([
+                    getStudentsByClassIds(classIds),
+                    getDocuments('messages', [
+                        { field: 'receiverId', operator: '==', value: currentUser.code }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc' }),
+                    getDocuments('messages', [
+                        { field: 'senderId', operator: '==', value: currentUser.code }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc' })
+                ]);
+                
+                teacherStudents = students;
+                allMessages = [...received, ...sent];
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            const inboxMessages = allMessages.filter(m => m.receiverId === currentUser.code);
+            const sentMessages = allMessages.filter(m => m.senderId === currentUser.code);
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الرسائل</h1>
+                                <p class="page-subtitle">إرسال واستقبال الرسائل</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="showCompose()">
+                                    <i class="fas fa-plus"></i>
+                                    رسالة جديدة
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn ${currentView === 'inbox' ? 'btn-primary' : 'btn-outline'}" onclick="showInbox()">
+                                <i class="fas fa-inbox"></i>
+                                الوارد
+                            </button>
+                            <button class="btn ${currentView === 'sent' ? 'btn-primary' : 'btn-outline'}" onclick="showSent()">
+                                <i class="fas fa-paper-plane"></i>
+                                المرسل
+                            </button>
+                        </div>
+                        
+                        <!-- المحتوى -->
+                        <div id="messagesContent">
+                            ${currentView === 'inbox' ? renderInbox(inboxMessages) : currentView === 'sent' ? renderSent(sentMessages) : renderCompose()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderInbox(messages) {
+            if (messages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-inbox"></i></div>
+                        <div class="empty-state-title">لا توجد رسائل واردة</div>
+                    </div>
+                `;
+            }
+            
+            return messages.map(message => `
+                <div class="message-item ${!message.isRead ? 'unread' : ''}" onclick="viewMessage('${message.id}')">
+                    <div class="avatar ${!message.isRead ? 'avatar-red' : ''}">
+                        ${escapeHtml((message.senderRole || 'م').charAt(0))}
+                    </div>
+                    <div class="list-item-content">
+                        <div class="d-flex justify-between items-center">
+                            <p class="message-sender">${message.senderRole === 'admin' ? 'الإدارة' : message.senderRole === 'teacher' ? 'معلم' : 'طالب'}</p>
+                            ${!message.isRead ? '<span class="message-unread-badge"></span>' : ''}
+                        </div>
+                        <p class="message-subject">${escapeHtml(message.subject)}</p>
+                        <p class="message-date">${formatDate(message.createdAt)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderSent(messages) {
+            if (messages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-paper-plane"></i></div>
+                        <div class="empty-state-title">لا توجد رسائل مرسلة</div>
+                    </div>
+                `;
+            }
+            
+            return messages.map(message => {
+                const student = teacherStudents.find(s => s.id === message.receiverId);
+                
+                return `
+                    <div class="message-item" onclick="viewMessage('${message.id}')">
+                        <div class="avatar avatar-green">
+                            ${escapeHtml((student?.name || 'م').charAt(0))}
+                        </div>
+                        <div class="list-item-content">
+                            <p class="message-sender">إلى: ${escapeHtml(student?.name || 'مستخدم')}</p>
+                            <p class="message-subject">${escapeHtml(message.subject)}</p>
+                            <p class="message-date">${formatDate(message.createdAt)}</p>
+                        </div>
+                        ${student?.phone ? `
+                            <a href="https://wa.me/2${student.phone}" target="_blank" class="whatsapp-btn" onclick="event.stopPropagation()">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderCompose() {
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">رسالة جديدة</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">إرسال إلى</label>
+                            <select class="form-control" id="receiverType" onchange="toggleStudentField()">
+                                <option value="">اختر المستلم</option>
+                                <option value="admin">الإدارة</option>
+                                <option value="student">طالب محدد</option>
+                                <option value="all_students">جميع طلابي</option>
+                            </select>
+                        </div>
+                        
+                        <div id="studentField" style="display: none;" class="form-group">
+                            <label class="form-label">الطالب</label>
+                            <select class="form-control" id="receiverStudent">
+                                <option value="">اختر الطالب</option>
+                                ${teacherStudents.map(s => `
+                                    <option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.studentCode || s.id)})</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">الموضوع <span class="required">*</span></label>
+                            <input type="text" class="form-control" id="messageSubject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">محتوى الرسالة <span class="required">*</span></label>
+                            <textarea class="form-control" id="messageContent" rows="5" required></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2 justify-end">
+                            <button class="btn btn-outline" onclick="showInbox()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="sendMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                                إرسال
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.toggleStudentField = function() {
+            const type = document.getElementById('receiverType').value;
+            document.getElementById('studentField').style.display = type === 'student' ? 'block' : 'none';
+        };
+        
+        window.showInbox = function() {
+            currentView = 'inbox';
+            buildPage();
+        };
+        
+        window.showSent = function() {
+            currentView = 'sent';
+            buildPage();
+        };
+        
+        window.showCompose = function() {
+            currentView = 'compose';
+            buildPage();
+        };
+        
+        window.viewMessage = async function(messageId) {
+            const message = allMessages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            if (!message.isRead && message.receiverId === currentUser.code) {
+                await updateDocument('messages', messageId, { isRead: true });
+                message.isRead = true;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">${escapeHtml(message.subject)}</h3>
+                        <button class="modal-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">${formatDate(message.createdAt)}</p>
+                        <div style="background: var(--soft); padding: 16px; border-radius: 12px;">
+                            <p style="white-space: pre-wrap;">${escapeHtml(message.content)}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline modal-close-btn">إغلاق</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeModal = () => modal.remove();
+            
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        };
+        
+        window.sendMessage = async function() {
+            const receiverType = document.getElementById('receiverType').value;
+            const subject = document.getElementById('messageSubject').value.trim();
+            const content = document.getElementById('messageContent').value.trim();
+            
+            if (!receiverType) {
+                showToast('الرجاء اختيار المستلم', 'warning');
+                return;
+            }
+            
+            if (!validateRequired(subject)) {
+                showToast('الرجاء إدخال موضوع الرسالة', 'warning');
+                return;
+            }
+            
+            if (!validateRequired(content)) {
+                showToast('الرجاء إدخال محتوى الرسالة', 'warning');
+                return;
+            }
+            
+            try {
+                if (receiverType === 'admin') {
+                    await createDocument('messages', {
+                        senderId: currentUser.code,
+                        senderRole: 'teacher',
+                        receiverId: 'admin',
+                        receiverRole: 'admin',
+                        subject,
+                        content,
+                        isRead: false
+                    });
+                    showToast('تم إرسال الرسالة للإدارة', 'success');
+                    
+                } else if (receiverType === 'student') {
+                    const studentId = document.getElementById('receiverStudent').value;
+                    if (!studentId) {
+                        showToast('الرجاء اختيار الطالب', 'warning');
+                        return;
+                    }
+                    
+                    await createDocument('messages', {
+                        senderId: currentUser.code,
+                        senderRole: 'teacher',
+                        receiverId: studentId,
+                        receiverRole: 'student',
+                        subject,
+                        content,
+                        isRead: false
+                    });
+                    showToast('تم إرسال الرسالة للطالب', 'success');
+                    
+                } else if (receiverType === 'all_students') {
+                    for (const student of teacherStudents) {
+                        await createDocument('messages', {
+                            senderId: currentUser.code,
+                            senderRole: 'teacher',
+                            receiverId: student.id,
+                            receiverRole: 'student',
+                            subject,
+                            content,
+                            isRead: false
+                        });
+                    }
+                    showToast(`تم إرسال الرسالة إلى ${teacherStudents.length} طالب`, 'success');
+                }
+                
+                showInbox();
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('حدث خطأ أثناء الإرسال', 'error');
+            }
+        };
+        
+        initMessages();
+    </script>
+</body>
+</html>

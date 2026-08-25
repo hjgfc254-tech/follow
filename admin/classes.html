@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الفصول | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getAllDocuments, deleteDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, confirmAction } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'classes';
+        
+        let allClasses = [];
+        let allStages = [];
+        let currentUser = null;
+        
+        async function initClasses() {
+            try {
+                currentUser = await requireAuth(['admin', 'super_admin']);
+                if (!currentUser) return;
+                
+                if (!isAdmin(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                const [classes, stages] = await Promise.all([
+                    getAllDocuments('classes'),
+                    getAllDocuments('stages')
+                ]);
+                
+                allClasses = classes;
+                allStages = stages;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الفصول</h1>
+                                <p class="page-subtitle">إجمالي الفصول: ${allClasses.length}</p>
+                            </div>
+                            <div class="page-actions">
+                                <a href="stages.html" class="btn btn-outline">
+                                    <i class="fas fa-layer-group"></i>
+                                    إدارة المراحل
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- فلترة حسب المرحلة -->
+                        <div class="filters-container">
+                            <select class="filter-select" id="stageFilter">
+                                <option value="">جميع المراحل</option>
+                                ${allStages.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <!-- عرض الفصول -->
+                        <div id="classesGrid">
+                            ${renderClasses()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderClasses(stageId = '') {
+            const filteredClasses = stageId 
+                ? allClasses.filter(c => c.stageId === stageId)
+                : allClasses;
+            
+            if (filteredClasses.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-book-open"></i></div>
+                        <div class="empty-state-title">لا توجد فصول</div>
+                        <div class="empty-state-text">قم بإضافة مرحلة أولاً</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="dashboard-grid-3">
+                    ${filteredClasses.map(cls => {
+                        const stage = allStages.find(s => s.id === cls.stageId);
+                        
+                        return `
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">${escapeHtml(cls.name)}</h3>
+                                    ${renderStatusBadge(cls.status || 'active')}
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-between items-center mb-2">
+                                        <span class="text-muted">المرحلة:</span>
+                                        <span style="font-weight: 600;">${escapeHtml(stage?.name || '—')}</span>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-between items-center mb-3">
+                                        <span class="text-muted">كود الفصل:</span>
+                                        <span class="font-numbers" style="font-weight: 600;">${escapeHtml(cls.code || '—')}</span>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-end">
+                                        <button class="btn btn-sm btn-danger" onclick="deleteClass('${cls.id}')">
+                                            <i class="fas fa-trash"></i>
+                                            حذف
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+            
+            document.getElementById('stageFilter')?.addEventListener('change', function() {
+                document.getElementById('classesGrid').innerHTML = renderClasses(this.value);
+            });
+        }
+        
+        window.deleteClass = async function(classId) {
+            const cls = allClasses.find(c => c.id === classId);
+            if (!cls) return;
+            
+            const confirmed = await confirmAction(`هل أنت متأكد من حذف الفصل "${cls.name}"؟`, 'تأكيد الحذف');
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('classes', classId);
+                showToast('تم حذف الفصل بنجاح', 'success');
+                location.reload();
+            } catch (error) {
+                console.error('Error deleting class:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        initClasses();
+    </script>
+</body>
+</html>

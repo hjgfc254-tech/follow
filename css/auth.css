@@ -1,0 +1,341 @@
+/* ============================================
+   css/auth.css
+   SchoolHub Pro - Auth Pages
+   الإصدار: 3.0
+   ============================================ */
+
+/* ============ Auth Container ============ */
+.auth-container {
+    background: var(--page-bg);
+    font-family: var(--font-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    direction: rtl;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ============ Auth Card ============ */
+.auth-card {
+    max-width: 500px;
+    width: 100%;
+    background: var(--white);
+    border-radius: 32px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: all var(--transition-smooth);
+}
+
+.auth-card:hover {
+    box-shadow: var(--shadow-card-hover);
+}
+
+.auth-card .card-accent-bar {
+    height: 6px;
+    background: linear-gradient(90deg, var(--navy-deep) 0%, var(--navy) 35%, var(--royal) 60%, var(--red) 85%, #E63946 100%);
+}
+
+.auth-card .card-body {
+    padding: 24px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* ============ Auth Header ============ */
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.auth-brand-icon {
+    background: var(--navy-deep);
+    color: var(--white);
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: var(--shadow-icon);
+}
+
+.auth-brand-text h3 {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--navy-deep);
+    line-height: 1.2;
+}
+
+.auth-brand-text span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--body);
+    letter-spacing: 0.2px;
+}
+
+/* ============ Auth Title ============ */
+.auth-title {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--navy-deep);
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.auth-subtitle {
+    font-size: 14px;
+    color: var(--body);
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* ============ Auth Form ============ */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-form .form-group {
+    margin-bottom: 0;
+}
+
+.auth-form .form-control {
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: 12px;
+    background: var(--soft);
+    border: 1px solid var(--border);
+    transition: all var(--transition-base);
+}
+
+.auth-form .form-control:focus {
+    border-color: var(--royal);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(30, 95, 187, 0.15);
+}
+
+/* ============ Input with Icon ============ */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper .form-control {
+    padding-left: 44px;
+}
+
+.input-wrapper .input-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--mute);
+    font-size: 16px;
+    pointer-events: none;
+    transition: color var(--transition-fast);
+}
+
+.input-wrapper:focus-within .input-icon {
+    color: var(--royal);
+}
+
+/* ============ Auth Button ============ */
+.auth-btn {
+    background: var(--accent-red);
+    border: none;
+    color: var(--white);
+    font-weight: 700;
+    font-family: var(--font-numbers);
+    padding: 14px 22px;
+    border-radius: 40px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    box-shadow: var(--shadow-btn-red);
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s;
+}
+
+.auth-btn:hover {
+    background: var(--red-hover);
+    box-shadow: var(--shadow-btn-red-hover);
+    transform: translateY(-2px);
+}
+
+.auth-btn:hover::before {
+    left: 100%;
+}
+
+.auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ============ Auth Error ============ */
+.auth-error {
+    background: var(--red-light);
+    color: var(--red);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* ============ Auth Footer ============ */
+.auth-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #5F748B;
+    border-top: 1px dashed #DCE3ED;
+    padding-top: 14px;
+}
+
+.auth-footer a {
+    color: var(--royal);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.auth-footer a:hover {
+    color: var(--navy);
+}
+
+/* ============ Role Cards ============ */
+.role-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.role-card {
+    flex: 1 1 calc(50% - 10px);
+    background: var(--white);
+    border: 1px solid #E2E9F3;
+    border-radius: 18px;
+    padding: 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #1A2F45;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    text-align: right;
+}
+
+.role-card i {
+    font-size: 20px;
+    width: 32px;
+    color: var(--royal);
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.role-card:hover {
+    border-color: var(--royal);
+    background: var(--royal-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30, 95, 187, 0.12);
+}
+
+.role-card:hover i {
+    color: var(--navy-deep);
+    transform: scale(1.1);
+}
+
+.role-card.admin-card i {
+    color: var(--warning);
+}
+
+.role-card.admin-card:hover {
+    border-color: var(--warning);
+    background: var(--warning-bg);
+}
+
+.role-card.student-card i {
+    color: var(--success);
+}
+
+.role-card.student-card:hover {
+    border-color: var(--success);
+    background: var(--success-bg);
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 400px) {
+    .auth-card .card-body {
+        padding: 18px 14px 16px;
+        gap: 14px;
+    }
+    
+    .auth-brand-text h3 {
+        font-size: 17px;
+    }
+    
+    .auth-title {
+        font-size: 18px;
+    }
+    
+    .auth-btn {
+        font-size: 14px;
+        padding: 12px 18px;
+    }
+    
+    .role-card {
+        font-size: 13px;
+        padding: 10px 8px;
+        gap: 6px;
+    }
+    
+    .role-card i {
+        font-size: 15px;
+        width: 22px;
+    }
+}

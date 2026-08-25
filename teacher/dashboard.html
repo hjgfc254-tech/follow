@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>لوحة التحكم | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments, getStudentsByClassIds } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatCard, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'dashboard';
+        
+        let currentUser = null;
+        let teacherData = null;
+        let teacherStudents = [];
+        let teacherAnnouncements = [];
+        let teacherMessages = [];
+        
+        async function initDashboard() {
+            try {
+                currentUser = await requireAuth('teacher');
+                if (!currentUser) return;
+                
+                if (!isTeacher(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                // الحصول على بيانات المعلم
+                teacherData = await getDocument('teachers', currentUser.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = { classIds: [], stageIds: [] };
+                }
+                
+                const classIds = teacherData.classIds || [];
+                
+                // تحميل الطلاب المسندين فقط (Data Isolation)
+                const [students, announcements, messages] = await Promise.all([
+                    getStudentsByClassIds(classIds),
+                    getDocuments('announcements', [
+                        { field: 'status', operator: '==', value: 'published' }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
+                    getDocuments('messages', [
+                        { field: 'receiverId', operator: '==', value: currentUser.code }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 })
+                ]);
+                
+                teacherStudents = students;
+                
+                // تصفية الإعلانات الخاصة بالمعلم
+                teacherAnnouncements = announcements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'teachers' ||
+                    (a.targetType === 'class' && classIds.includes(a.targetClassId))
+                );
+                
+                teacherMessages = messages;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            const unreadMessages = teacherMessages.filter(m => !m.isRead).length;
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">لوحة التحكم</h1>
+                                <p class="page-subtitle">مرحبًا ${escapeHtml(currentUser.name)} 👋</p>
+                            </div>
+                        </div>
+                        
+                        <!-- الإحصائيات -->
+                        <div class="stats-grid">
+                            ${renderStatCard({ label: 'طلابي', value: teacherStudents.length, icon: 'fa-user-graduate', color: 'royal' })}
+                            ${renderStatCard({ label: 'الفصول المسندة', value: (teacherData.classIds || []).length, icon: 'fa-book-open', color: 'success' })}
+                            ${renderStatCard({ label: 'رسائل غير مقروءة', value: unreadMessages, icon: 'fa-envelope', color: 'warning' })}
+                        </div>
+                        
+                        <!-- آخر الإعلانات -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">آخر الإعلانات</h3>
+                                <a href="announcements.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                            </div>
+                            <div class="card-body">
+                                ${teacherAnnouncements.length > 0 ? teacherAnnouncements.map(a => `
+                                    <div class="list-item">
+                                        <div class="list-item-icon"><i class="fas fa-bell"></i></div>
+                                        <div class="list-item-content">
+                                            <p class="list-item-title">${escapeHtml(a.title)}</p>
+                                            <p class="list-item-subtitle">${formatDate(a.createdAt)}</p>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-muted text-center">لا توجد إعلانات</p>'}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        initDashboard();
+    </script>
+</body>
+</html>

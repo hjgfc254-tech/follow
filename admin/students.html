@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الطلاب | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getAllDocuments, setDocument, updateDocument, deleteDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, confirmAction, validateCode, validatePassword, validatePhone } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'students';
+        
+        let allStudents = [];
+        let allStages = [];
+        let allClasses = [];
+        let filteredStudents = [];
+        let currentUser = null;
+        
+        async function initStudents() {
+            try {
+                currentUser = await requireAuth(['admin', 'super_admin']);
+                if (!currentUser) return;
+                
+                if (!isAdmin(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                const [students, stages, classes] = await Promise.all([
+                    getAllDocuments('students'),
+                    getAllDocuments('stages'),
+                    getAllDocuments('classes')
+                ]);
+                
+                allStudents = students;
+                allStages = stages.filter(s => s.status === 'active');
+                allClasses = classes;
+                filteredStudents = [...students];
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الطلاب</h1>
+                                <p class="page-subtitle">إجمالي الطلاب: ${allStudents.length}</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="openAddModal()">
+                                    <i class="fas fa-plus"></i>
+                                    إضافة طالب
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- البحث والفلترة -->
+                        <div class="filters-container">
+                            <input type="text" class="search-input" placeholder="بحث بالاسم أو الكود..." id="searchInput">
+                            <select class="filter-select" id="stageFilter">
+                                <option value="">جميع المراحل</option>
+                                ${allStages.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
+                            </select>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">جميع الحالات</option>
+                                <option value="active">نشط</option>
+                                <option value="inactive">غير نشط</option>
+                            </select>
+                        </div>
+                        
+                        <!-- جدول الطلاب -->
+                        <div id="studentsTable">
+                            ${renderTable(filteredStudents)}
+                        </div>
+                    </main>
+                </div>
+                
+                <!-- Modal إضافة/تعديل -->
+                <div class="modal-overlay" id="studentModal" style="display: none;">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="modalTitle">إضافة طالب</h3>
+                            <button class="modal-close" onclick="closeModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="studentId">
+                            
+                            <div class="form-group">
+                                <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                                <input type="text" class="form-control" id="studentName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">المرحلة <span class="required">*</span></label>
+                                <select class="form-control" id="studentStage" required>
+                                    <option value="">اختر المرحلة</option>
+                                    ${allStages.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">الفصل</label>
+                                <select class="form-control" id="studentClass">
+                                    <option value="">اختر الفصل</option>
+                                    ${allClasses.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">كود الطالب (4 أرقام) <span class="required">*</span></label>
+                                <input type="text" class="form-control" id="studentCode" maxlength="4" inputmode="numeric" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">كلمة المرور (6 أرقام) <span class="required">*</span></label>
+                                <input type="password" class="form-control" id="studentPassword" maxlength="6" inputmode="numeric" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">رقم الهاتف (اختياري - للواتساب)</label>
+                                <input type="tel" class="form-control" id="studentPhone" maxlength="11" inputmode="numeric" placeholder="01xxxxxxxxx">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="saveStudent()">حفظ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderTable(students) {
+            if (students.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-user-graduate"></i></div>
+                        <div class="empty-state-title">لا يوجد طلاب</div>
+                        <div class="empty-state-text">لم يتم العثور على أي طالب</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>الاسم</th>
+                                <th>المرحلة</th>
+                                <th>الفصل</th>
+                                <th>الهاتف</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(student => {
+                                const stage = allStages.find(s => s.id === student.stageId);
+                                const cls = allClasses.find(c => c.id === student.classId);
+                                
+                                return `
+                                    <tr>
+                                        <td data-label="الكود"><span class="font-numbers">${escapeHtml(student.studentCode || student.id)}</span></td>
+                                        <td data-label="الاسم">${escapeHtml(student.name)}</td>
+                                        <td data-label="المرحلة">${escapeHtml(stage?.name || '—')}</td>
+                                        <td data-label="الفصل">${escapeHtml(cls?.name || '—')}</td>
+                                        <td data-label="الهاتف" class="font-numbers" dir="ltr">${escapeHtml(student.phone || '—')}</td>
+                                        <td data-label="الحالة">${renderStatusBadge(student.status || 'active')}</td>
+                                        <td data-label="إجراءات" class="actions-cell">
+                                            <button class="btn btn-sm btn-outline" onclick="editStudent('${student.id}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteStudent('${student.id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+            
+            document.getElementById('searchInput')?.addEventListener('input', debounceFilter);
+            document.getElementById('stageFilter')?.addEventListener('change', applyFilters);
+            document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+        }
+        
+        function debounceFilter() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(applyFilters, 300);
+        }
+        
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.trim().toLowerCase();
+            const stageId = document.getElementById('stageFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            filteredStudents = allStudents.filter(student => {
+                if (search) {
+                    const searchText = `${student.name} ${student.studentCode || student.id}`.toLowerCase();
+                    if (!searchText.includes(search)) return false;
+                }
+                if (stageId && student.stageId !== stageId) return false;
+                if (status && (student.status || 'active') !== status) return false;
+                return true;
+            });
+            
+            document.getElementById('studentsTable').innerHTML = renderTable(filteredStudents);
+        }
+        
+        window.openAddModal = function() {
+            document.getElementById('modalTitle').textContent = 'إضافة طالب';
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentStage').value = '';
+            document.getElementById('studentClass').value = '';
+            document.getElementById('studentCode').value = '';
+            document.getElementById('studentPassword').value = '';
+            document.getElementById('studentPhone').value = '';
+            document.getElementById('studentModal').style.display = 'flex';
+        };
+        
+        window.closeModal = function() {
+            document.getElementById('studentModal').style.display = 'none';
+        };
+        
+        window.editStudent = function(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student) return;
+            
+            document.getElementById('modalTitle').textContent = 'تعديل طالب';
+            document.getElementById('studentId').value = studentId;
+            document.getElementById('studentName').value = student.name || '';
+            document.getElementById('studentStage').value = student.stageId || '';
+            document.getElementById('studentClass').value = student.classId || '';
+            document.getElementById('studentCode').value = student.studentCode || studentId;
+            document.getElementById('studentPassword').value = student.password || '';
+            document.getElementById('studentPhone').value = student.phone || '';
+            document.getElementById('studentModal').style.display = 'flex';
+        };
+        
+        window.saveStudent = async function() {
+            const studentId = document.getElementById('studentId').value;
+            const name = document.getElementById('studentName').value.trim();
+            const stageId = document.getElementById('studentStage').value;
+            const classId = document.getElementById('studentClass').value;
+            const code = document.getElementById('studentCode').value.trim();
+            const password = document.getElementById('studentPassword').value.trim();
+            const phone = document.getElementById('studentPhone').value.trim();
+            
+            if (!name) {
+                showToast('الرجاء إدخال اسم الطالب', 'warning');
+                return;
+            }
+            
+            if (!stageId) {
+                showToast('الرجاء اختيار المرحلة', 'warning');
+                return;
+            }
+            
+            if (!validateCode(code)) {
+                showToast('الكود يجب أن يكون 4 أرقام', 'warning');
+                return;
+            }
+            
+            if (!validatePassword(password)) {
+                showToast('كلمة المرور يجب أن تكون 6 أرقام', 'warning');
+                return;
+            }
+            
+            if (phone && !validatePhone(phone)) {
+                showToast('رقم الهاتف غير صحيح', 'warning');
+                return;
+            }
+            
+            const codeExists = allStudents.some(s => 
+                (s.studentCode === code || s.id === code) && s.id !== studentId
+            );
+            
+            if (codeExists) {
+                showToast('الكود مستخدم بالفعل', 'error');
+                return;
+            }
+            
+            const studentData = {
+                name,
+                stageId,
+                classId: classId || null,
+                studentCode: code,
+                password,
+                phone: phone || '',
+                status: 'active'
+            };
+            
+            try {
+                if (studentId) {
+                    await updateDocument('students', studentId, studentData);
+                    showToast('تم تحديث الطالب بنجاح', 'success');
+                } else {
+                    // إنشاء في students collection
+                    await setDocument('students', code, studentData);
+                    
+                    // إنشاء في users collection للدخول
+                    await setDocument('users', code, {
+                        code,
+                        password,
+                        name,
+                        role: 'student',
+                        status: 'active',
+                        linkedId: code,
+                        phone: phone || '',
+                        stageId,
+                        classId: classId || ''
+                    });
+                    
+                    showToast('تم إضافة الطالب بنجاح', 'success');
+                }
+                
+                closeModal();
+                location.reload();
+                
+            } catch (error) {
+                console.error('Error saving student:', error);
+                showToast('حدث خطأ أثناء الحفظ', 'error');
+            }
+        };
+        
+        window.deleteStudent = async function(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student) return;
+            
+            const confirmed = await confirmAction(`هل أنت متأكد من حذف الطالب "${student.name}"؟`, 'تأكيد الحذف');
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('students', studentId);
+                await deleteDocument('users', studentId);
+                showToast('تم حذف الطالب بنجاح', 'success');
+                location.reload();
+            } catch (error) {
+                console.error('Error deleting student:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        initStudents();
+    </script>
+</body>
+</html>

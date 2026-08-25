@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الرسائل | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocuments, updateDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
+        import { isStudent } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'messages';
+        
+        let currentUser = null;
+        let messages = [];
+        
+        async function initMessages() {
+            try {
+                currentUser = await requireAuth('student');
+                if (!currentUser) return;
+                
+                if (!isStudent(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                messages = await getDocuments('messages', [
+                    { field: 'receiverId', operator: '==', value: currentUser.code }
+                ], { orderBy: 'createdAt', orderDirection: 'desc' });
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            const unreadCount = messages.filter(m => !m.isRead).length;
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الرسائل</h1>
+                                <p class="page-subtitle">${unreadCount} رسائل غير مقروءة</p>
+                            </div>
+                        </div>
+                        
+                        <!-- عرض الرسائل -->
+                        <div id="messagesList">
+                            ${renderMessages()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderMessages() {
+            if (messages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-inbox"></i></div>
+                        <div class="empty-state-title">لا توجد رسائل</div>
+                        <div class="empty-state-text">لم تصلك أي رسائل بعد</div>
+                    </div>
+                `;
+            }
+            
+            return messages.map(message => {
+                const senderLabel = message.senderRole === 'admin' ? 'الإدارة' : 
+                                   message.senderRole === 'teacher' ? 'معلم' : 'مرسل';
+                
+                return `
+                    <div class="message-item ${!message.isRead ? 'unread' : ''}" onclick="viewMessage('${message.id}')">
+                        <div class="avatar ${!message.isRead ? 'avatar-red' : ''}">
+                            ${escapeHtml(senderLabel.charAt(0))}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="d-flex justify-between items-center">
+                                <p class="message-sender">${escapeHtml(senderLabel)}</p>
+                                ${!message.isRead ? '<span class="message-unread-badge"></span>' : ''}
+                            </div>
+                            <p class="message-subject">${escapeHtml(message.subject)}</p>
+                            <p class="message-date">${formatDate(message.createdAt)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.viewMessage = async function(messageId) {
+            const message = messages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            if (!message.isRead) {
+                await updateDocument('messages', messageId, { isRead: true });
+                message.isRead = true;
+            }
+            
+            const senderLabel = message.senderRole === 'admin' ? 'الإدارة' : 
+                               message.senderRole === 'teacher' ? 'معلم' : 'مرسل';
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">${escapeHtml(message.subject)}</h3>
+                        <button class="modal-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex justify-between mb-3">
+                            <p class="text-muted mb-0">من: ${escapeHtml(senderLabel)}</p>
+                            <span class="text-muted">${formatDate(message.createdAt)}</span>
+                        </div>
+                        <div style="background: var(--soft); padding: 16px; border-radius: 12px;">
+                            <p style="white-space: pre-wrap;">${escapeHtml(message.content)}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline modal-close-btn">إغلاق</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeModal = () => {
+                modal.remove();
+                buildPage();
+            };
+            
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        };
+        
+        initMessages();
+    </script>
+</body>
+</html>

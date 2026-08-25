@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>السجلات | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getPaginatedDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'logs';
+        
+        let allLogs = [];
+        let currentUser = null;
+        let lastVisible = null;
+        let hasMore = false;
+        
+        async function initLogs() {
+            try {
+                currentUser = await requireAuth(['admin', 'super_admin']);
+                if (!currentUser) return;
+                
+                if (!isAdmin(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                const result = await getPaginatedDocuments('system_logs', {
+                    orderByField: 'createdAt',
+                    orderDirection: 'desc',
+                    pageSize: 50
+                });
+                
+                allLogs = result.documents;
+                lastVisible = result.lastVisible;
+                hasMore = result.hasMore;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                allLogs = [];
+                hasMore = false;
+                buildPage();
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">سجلات النظام</h1>
+                                <p class="page-subtitle">سجل العمليات والإجراءات</p>
+                            </div>
+                        </div>
+                        
+                        <!-- عرض السجلات -->
+                        <div id="logsList">
+                            ${renderLogs()}
+                        </div>
+                        
+                        ${hasMore ? `
+                            <div class="text-center mt-3">
+                                <button class="btn btn-outline" onclick="loadMore()">
+                                    تحميل المزيد
+                                </button>
+                            </div>
+                        ` : ''}
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderLogs() {
+            if (allLogs.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-list"></i></div>
+                        <div class="empty-state-title">لا توجد سجلات</div>
+                        <div class="empty-state-text">لم يتم تسجيل أي عملية بعد</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="timeline">
+                    ${allLogs.map(log => {
+                        const logInfo = getLogInfo(log.action);
+                        
+                        return `
+                            <div class="timeline-item">
+                                <div class="timeline-dot" style="background: ${logInfo.color};"></div>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-between items-center flex-wrap gap-2">
+                                            <div class="d-flex items-center gap-2">
+                                                <span style="font-size: 1.5rem;">${logInfo.icon}</span>
+                                                <div>
+                                                    <h4 class="mb-0" style="font-size: 15px;">${logInfo.label}</h4>
+                                                    <p class="text-muted mb-0" style="font-size: 12px;">${formatDate(log.createdAt)}</p>
+                                                </div>
+                                            </div>
+                                            <span class="badge badge-royal">${escapeHtml(log.actorRole || '')}</span>
+                                        </div>
+                                        
+                                        ${log.targetType || log.targetId ? `
+                                            <div class="mt-2 d-flex gap-2 flex-wrap">
+                                                ${log.targetType ? `<span class="badge badge-info">${escapeHtml(log.targetType)}</span>` : ''}
+                                                ${log.targetId ? `<span class="badge badge-muted">${escapeHtml(log.targetId)}</span>` : ''}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        function getLogInfo(action) {
+            const logMap = {
+                'CREATE_STUDENT': { label: 'إضافة طالب', icon: '👨‍🎓', color: '#059669' },
+                'UPDATE_STUDENT': { label: 'تعديل طالب', icon: '✏️', color: '#0284C7' },
+                'DELETE_STUDENT': { label: 'حذف طالب', icon: '🗑️', color: '#DC2626' },
+                'CREATE_TEACHER': { label: 'إضافة معلم', icon: '👨‍🏫', color: '#059669' },
+                'UPDATE_TEACHER': { label: 'تعديل معلم', icon: '✏️', color: '#0284C7' },
+                'DELETE_TEACHER': { label: 'حذف معلم', icon: '🗑️', color: '#DC2626' },
+                'CREATE_ANNOUNCEMENT': { label: 'إضافة إعلان', icon: '📢', color: '#059669' },
+                'DELETE_ANNOUNCEMENT': { label: 'حذف إعلان', icon: '🗑️', color: '#DC2626' },
+                'SEND_MESSAGE': { label: 'إرسال رسالة', icon: '✉️', color: '#1E5FBB' },
+                'CREATE_EVENT': { label: 'إضافة حدث', icon: '📅', color: '#059669' },
+                'LOGIN': { label: 'تسجيل دخول', icon: '🔑', color: '#1E5FBB' },
+                'LOGOUT': { label: 'تسجيل خروج', icon: '🚪', color: '#6B7280' }
+            };
+            
+            return logMap[action] || { label: action, icon: '📋', color: '#6B7280' };
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.loadMore = async function() {
+            try {
+                if (!lastVisible) return;
+                
+                const result = await getPaginatedDocuments('system_logs', {
+                    orderByField: 'createdAt',
+                    orderDirection: 'desc',
+                    pageSize: 50,
+                    lastDoc: lastVisible
+                });
+                
+                allLogs = [...allLogs, ...result.documents];
+                lastVisible = result.lastVisible;
+                hasMore = result.hasMore;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error loading more:', error);
+                showToast('حدث خطأ أثناء التحميل', 'error');
+            }
+        };
+        
+        initLogs();
+    </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الإعدادات | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, setDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, validateRequired } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'settings';
+        
+        let currentUser = null;
+        let settings = null;
+        
+        async function initSettings() {
+            try {
+                currentUser = await requireAuth(['admin', 'super_admin']);
+                if (!currentUser) return;
+                
+                if (!isAdmin(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                settings = await getDocument('settings', 'general');
+                
+                if (!settings) {
+                    settings = {
+                        schoolName: 'مدارس الجيل الجديد الخاصة',
+                        schoolDescription: 'نظام المتابعة الذكي',
+                        academicYear: '2026/2027',
+                        schoolPhone: '',
+                        schoolAddress: ''
+                    };
+                }
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الإعدادات</h1>
+                                <p class="page-subtitle">إعدادات النظام والمدرسة</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="max-width: 600px;">
+                            <div class="card-header">
+                                <h3 class="card-title">معلومات المدرسة</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">اسم المدرسة <span class="required">*</span></label>
+                                    <input type="text" class="form-control" id="schoolName" value="${escapeHtml(settings.schoolName)}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">وصف المدرسة</label>
+                                    <textarea class="form-control" id="schoolDescription" rows="3">${escapeHtml(settings.schoolDescription)}</textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">العام الدراسي</label>
+                                    <input type="text" class="form-control" id="academicYear" value="${escapeHtml(settings.academicYear)}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">هاتف المدرسة</label>
+                                    <input type="tel" class="form-control" id="schoolPhone" value="${escapeHtml(settings.schoolPhone || '')}" dir="ltr">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">عنوان المدرسة</label>
+                                    <input type="text" class="form-control" id="schoolAddress" value="${escapeHtml(settings.schoolAddress || '')}">
+                                </div>
+                                
+                                <button class="btn btn-primary" onclick="saveSettings()">
+                                    <i class="fas fa-save"></i>
+                                    حفظ الإعدادات
+                                </button>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.saveSettings = async function() {
+            const schoolName = document.getElementById('schoolName').value.trim();
+            const schoolDescription = document.getElementById('schoolDescription').value.trim();
+            const academicYear = document.getElementById('academicYear').value.trim();
+            const schoolPhone = document.getElementById('schoolPhone').value.trim();
+            const schoolAddress = document.getElementById('schoolAddress').value.trim();
+            
+            if (!validateRequired(schoolName)) {
+                showToast('الرجاء إدخال اسم المدرسة', 'warning');
+                return;
+            }
+            
+            try {
+                await setDocument('settings', 'general', {
+                    schoolName,
+                    schoolDescription,
+                    academicYear,
+                    schoolPhone,
+                    schoolAddress
+                });
+                
+                showToast('تم حفظ الإعدادات بنجاح', 'success');
+                
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showToast('حدث خطأ أثناء الحفظ', 'error');
+            }
+        };
+        
+        initSettings();
+    </script>
+</body>
+</html>

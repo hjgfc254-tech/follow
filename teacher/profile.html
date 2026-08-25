@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>ملفي | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getAllDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'profile';
+        
+        let currentUser = null;
+        let teacherData = null;
+        let teacherClasses = [];
+        
+        async function initProfile() {
+            try {
+                currentUser = await requireAuth('teacher');
+                if (!currentUser) return;
+                
+                if (!isTeacher(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                teacherData = await getDocument('teachers', currentUser.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = {
+                        name: currentUser.name || 'معلم',
+                        teacherCode: currentUser.linkedId,
+                        phone: currentUser.phone || '',
+                        classIds: []
+                    };
+                }
+                
+                // تحميل الفصول المسندة
+                const allClasses = await getAllDocuments('classes');
+                teacherClasses = allClasses.filter(c => 
+                    (teacherData.classIds || []).includes(c.id)
+                );
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">ملفي الشخصي</h1>
+                                <p class="page-subtitle">بياناتك الشخصية</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Header -->
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                ${escapeHtml((teacherData.name || 'م').charAt(0))}
+                            </div>
+                            <h2 class="profile-name">${escapeHtml(teacherData.name)}</h2>
+                            <p class="profile-role">معلم</p>
+                        </div>
+                        
+                        <!-- البيانات الشخصية -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">البيانات الشخصية</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="profile-details">
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">كود المعلم</div>
+                                        <div class="profile-detail-value font-numbers">${escapeHtml(teacherData.teacherCode || currentUser.linkedId)}</div>
+                                    </div>
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">رقم الهاتف</div>
+                                        <div class="profile-detail-value font-numbers" dir="ltr">${escapeHtml(teacherData.phone || '—')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- الفصول المسندة -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">الفصول المسندة</h3>
+                            </div>
+                            <div class="card-body">
+                                ${teacherClasses.length > 0 ? teacherClasses.map(cls => `
+                                    <div class="list-item">
+                                        <div class="list-item-icon"><i class="fas fa-book-open"></i></div>
+                                        <div class="list-item-content">
+                                            <p class="list-item-title">${escapeHtml(cls.name)}</p>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-muted text-center">لا توجد فصول مسندة</p>'}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        initProfile();
+    </script>
+</body>
+</html>

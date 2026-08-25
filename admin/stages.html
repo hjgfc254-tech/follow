@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>المراحل | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getAllDocuments, createDocument, setDocument, updateDocument, deleteDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, confirmAction, validateRequired } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'stages';
+        
+        let allStages = [];
+        let allClasses = [];
+        let currentUser = null;
+        
+        async function initStages() {
+            try {
+                currentUser = await requireAuth(['admin', 'super_admin']);
+                if (!currentUser) return;
+                
+                if (!isAdmin(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                const [stages, classes] = await Promise.all([
+                    getAllDocuments('stages'),
+                    getAllDocuments('classes')
+                ]);
+                
+                allStages = stages;
+                allClasses = classes;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">المراحل الدراسية</h1>
+                                <p class="page-subtitle">إجمالي المراحل: ${allStages.length}</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="openAddModal()">
+                                    <i class="fas fa-plus"></i>
+                                    إضافة مرحلة
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- عرض المراحل -->
+                        <div id="stagesGrid">
+                            ${renderStages()}
+                        </div>
+                    </main>
+                </div>
+                
+                <!-- Modal إضافة/تعديل مرحلة -->
+                <div class="modal-overlay" id="stageModal" style="display: none;">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="modalTitle">إضافة مرحلة</h3>
+                            <button class="modal-close" onclick="closeModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="stageId">
+                            
+                            <div class="form-group">
+                                <label class="form-label">اسم المرحلة <span class="required">*</span></label>
+                                <input type="text" class="form-control" id="stageName" placeholder="مثال: الصف الأول" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">عدد الفصول <span class="required">*</span></label>
+                                <input type="number" class="form-control" id="classesCount" min="1" max="20" value="1" required>
+                                <div class="form-text">سيتم إنشاء الفصول تلقائيًا مثل: 1/1، 2/1، 3/1</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="saveStage()">حفظ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderStages() {
+            if (allStages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="empty-state-title">لا توجد مراحل</div>
+                        <div class="empty-state-text">لم يتم إضافة أي مرحلة بعد</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="dashboard-grid-3">
+                    ${allStages.map(stage => {
+                        const stageClasses = allClasses.filter(c => c.stageId === stage.id);
+                        
+                        return `
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">${escapeHtml(stage.name)}</h3>
+                                    ${renderStatusBadge(stage.status || 'active')}
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-between items-center mb-2">
+                                        <span class="text-muted">عدد الفصول:</span>
+                                        <span class="font-numbers" style="font-weight: 700;">${stageClasses.length}</span>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-wrap gap-1 mb-3">
+                                        ${stageClasses.map(cls => `
+                                            <span class="badge badge-royal">${escapeHtml(cls.name)}</span>
+                                        `).join('')}
+                                    </div>
+                                    
+                                    <div class="d-flex gap-1 justify-end">
+                                        <button class="btn btn-sm btn-outline" onclick="editStage('${stage.id}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteStage('${stage.id}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.openAddModal = function() {
+            document.getElementById('modalTitle').textContent = 'إضافة مرحلة';
+            document.getElementById('stageId').value = '';
+            document.getElementById('stageName').value = '';
+            document.getElementById('classesCount').value = 1;
+            document.getElementById('stageModal').style.display = 'flex';
+        };
+        
+        window.closeModal = function() {
+            document.getElementById('stageModal').style.display = 'none';
+        };
+        
+        window.editStage = function(stageId) {
+            const stage = allStages.find(s => s.id === stageId);
+            if (!stage) return;
+            
+            const stageClasses = allClasses.filter(c => c.stageId === stageId);
+            
+            document.getElementById('modalTitle').textContent = 'تعديل مرحلة';
+            document.getElementById('stageId').value = stageId;
+            document.getElementById('stageName').value = stage.name || '';
+            document.getElementById('classesCount').value = stageClasses.length || 1;
+            document.getElementById('stageModal').style.display = 'flex';
+        };
+        
+        window.saveStage = async function() {
+            const stageId = document.getElementById('stageId').value;
+            const stageName = document.getElementById('stageName').value.trim();
+            const classesCount = parseInt(document.getElementById('classesCount').value) || 1;
+            
+            if (!validateRequired(stageName)) {
+                showToast('الرجاء إدخال اسم المرحلة', 'warning');
+                return;
+            }
+            
+            try {
+                if (stageId) {
+                    // تحديث المرحلة
+                    await updateDocument('stages', stageId, { name: stageName });
+                    
+                    // التحقق من الفصول الحالية
+                    const existingClasses = allClasses.filter(c => c.stageId === stageId);
+                    
+                    if (existingClasses.length < classesCount) {
+                        // إضافة فصول جديدة
+                        for (let i = existingClasses.length + 1; i <= classesCount; i++) {
+                            const classCode = `${i}/1`;
+                            await setDocument('classes', `${stageId}_${i}`, {
+                                name: `${stageName} - ${i}/1`,
+                                code: classCode,
+                                stageId: stageId,
+                                status: 'active'
+                            });
+                        }
+                    }
+                    
+                    showToast('تم تحديث المرحلة بنجاح', 'success');
+                } else {
+                    // إنشاء مرحلة جديدة
+                    const newStageRef = await createDocument('stages', {
+                        name: stageName,
+                        status: 'active'
+                    });
+                    
+                    // إنشاء الفصول تلقائيًا
+                    for (let i = 1; i <= classesCount; i++) {
+                        const classCode = `${i}/1`;
+                        await setDocument('classes', `${newStageRef}_${i}`, {
+                            name: `${stageName} - ${i}/1`,
+                            code: classCode,
+                            stageId: newStageRef,
+                            status: 'active'
+                        });
+                    }
+                    
+                    showToast('تم إضافة المرحلة والفصول بنجاح', 'success');
+                }
+                
+                closeModal();
+                location.reload();
+                
+            } catch (error) {
+                console.error('Error saving stage:', error);
+                showToast('حدث خطأ أثناء الحفظ', 'error');
+            }
+        };
+        
+        window.deleteStage = async function(stageId) {
+            const stage = allStages.find(s => s.id === stageId);
+            if (!stage) return;
+            
+            const confirmed = await confirmAction(`هل أنت متأكد من حذف المرحلة "${stage.name}" وجميع فصولها؟`, 'تأكيد الحذف');
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('stages', stageId);
+                
+                // حذف الفصول المرتبطة
+                const stageClasses = allClasses.filter(c => c.stageId === stageId);
+                for (const cls of stageClasses) {
+                    await deleteDocument('classes', cls.id);
+                }
+                
+                showToast('تم حذف المرحلة بنجاح', 'success');
+                location.reload();
+            } catch (error) {
+                console.error('Error deleting stage:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        initStages();
+    </script>
+</body>
+</html>

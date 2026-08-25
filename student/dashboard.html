@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>لوحة التحكم | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatCard, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
+        import { isStudent } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'dashboard';
+        
+        let currentUser = null;
+        let studentData = null;
+        let announcements = [];
+        let messages = [];
+        let events = [];
+        
+        async function initDashboard() {
+            try {
+                currentUser = await requireAuth('student');
+                if (!currentUser) return;
+                
+                if (!isStudent(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                // الحصول على بيانات الطالب
+                studentData = await getDocument('students', currentUser.linkedId);
+                
+                if (!studentData) {
+                    studentData = {
+                        name: currentUser.name || 'طالب',
+                        studentCode: currentUser.linkedId,
+                        stageId: '',
+                        classId: ''
+                    };
+                }
+                
+                // تحميل الإعلانات والرسائل والأحداث
+                const [allAnnouncements, allMessages, allEvents] = await Promise.all([
+                    getDocuments('announcements', [
+                        { field: 'status', operator: '==', value: 'published' }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
+                    getDocuments('messages', [
+                        { field: 'receiverId', operator: '==', value: currentUser.code }
+                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
+                    getDocuments('events', [
+                        { field: 'status', operator: '==', value: 'published' }
+                    ], { orderBy: 'date', orderDirection: 'asc', limit: 5 })
+                ]);
+                
+                // تصفية الإعلانات الخاصة بالطالب
+                announcements = allAnnouncements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'students' ||
+                    (a.targetType === 'stage' && a.targetStageId === studentData.stageId) ||
+                    (a.targetType === 'class' && a.targetClassId === studentData.classId)
+                );
+                
+                messages = allMessages;
+                events = allEvents;
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            const unreadMessages = messages.filter(m => !m.isRead).length;
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">لوحة التحكم</h1>
+                                <p class="page-subtitle">مرحبًا ${escapeHtml(currentUser.name)} 👋</p>
+                            </div>
+                        </div>
+                        
+                        <!-- الإحصائيات -->
+                        <div class="stats-grid">
+                            ${renderStatCard({ label: 'رسائل غير مقروءة', value: unreadMessages, icon: 'fa-envelope', color: 'warning' })}
+                            ${renderStatCard({ label: 'الإعلانات', value: announcements.length, icon: 'fa-bell', color: 'royal' })}
+                            ${renderStatCard({ label: 'الأحداث', value: events.length, icon: 'fa-calendar-alt', color: 'success' })}
+                        </div>
+                        
+                        <!-- آخر الإعلانات -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">آخر الإعلانات</h3>
+                                <a href="announcements.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                            </div>
+                            <div class="card-body">
+                                ${announcements.length > 0 ? announcements.map(a => `
+                                    <div class="list-item">
+                                        <div class="list-item-icon"><i class="fas fa-bell"></i></div>
+                                        <div class="list-item-content">
+                                            <p class="list-item-title">${escapeHtml(a.title)}</p>
+                                            <p class="list-item-subtitle">${formatDate(a.createdAt)}</p>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-muted text-center">لا توجد إعلانات</p>'}
+                            </div>
+                        </div>
+                        
+                        <!-- الأحداث القادمة -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">الأحداث القادمة</h3>
+                                <a href="events.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                            </div>
+                            <div class="card-body">
+                                ${events.length > 0 ? events.map(e => `
+                                    <div class="list-item">
+                                        <div class="list-item-icon"><i class="fas fa-calendar-alt"></i></div>
+                                        <div class="list-item-content">
+                                            <p class="list-item-title">${escapeHtml(e.title)}</p>
+                                            <p class="list-item-subtitle">${formatDate(e.date)}</p>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-muted text-center">لا توجد أحداث</p>'}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        initDashboard();
+    </script>
+</body>
+</html>

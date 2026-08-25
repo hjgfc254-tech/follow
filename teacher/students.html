@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>طلابي | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getStudentsByClassIds } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'students';
+        
+        let currentUser = null;
+        let teacherData = null;
+        let teacherStudents = [];
+        let filteredStudents = [];
+        
+        async function initStudents() {
+            try {
+                currentUser = await requireAuth('teacher');
+                if (!currentUser) return;
+                
+                if (!isTeacher(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                // الحصول على بيانات المعلم
+                teacherData = await getDocument('teachers', currentUser.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = { classIds: [], stageIds: [] };
+                }
+                
+                // تحميل الطلاب المسندين فقط
+                const classIds = teacherData.classIds || [];
+                teacherStudents = await getStudentsByClassIds(classIds);
+                filteredStudents = [...teacherStudents];
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">طلابي</h1>
+                                <p class="page-subtitle">إجمالي الطلاب المسندين: ${teacherStudents.length}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- البحث -->
+                        <div class="filters-container">
+                            <input type="text" class="search-input" placeholder="بحث بالاسم أو الكود..." id="searchInput">
+                        </div>
+                        
+                        <!-- جدول الطلاب -->
+                        <div id="studentsTable">
+                            ${renderTable(filteredStudents)}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderTable(students) {
+            if (students.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-user-graduate"></i></div>
+                        <div class="empty-state-title">لا يوجد طلاب</div>
+                        <div class="empty-state-text">لم يتم إسناد أي طلاب لك بعد</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>الاسم</th>
+                                <th>الهاتف</th>
+                                <th>واتساب</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(student => `
+                                <tr>
+                                    <td data-label="الكود"><span class="font-numbers">${escapeHtml(student.studentCode || student.id)}</span></td>
+                                    <td data-label="الاسم">${escapeHtml(student.name)}</td>
+                                    <td data-label="الهاتف" class="font-numbers" dir="ltr">${escapeHtml(student.phone || '—')}</td>
+                                    <td data-label="واتساب">
+                                        ${student.phone ? `
+                                            <a href="https://wa.me/2${student.phone}" target="_blank" class="whatsapp-btn">
+                                                <i class="fab fa-whatsapp"></i>
+                                                واتساب
+                                            </a>
+                                        ` : '—'}
+                                    </td>
+                                    <td data-label="الحالة">${renderStatusBadge(student.status || 'active')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+            
+            document.getElementById('searchInput')?.addEventListener('input', debounceFilter);
+        }
+        
+        function debounceFilter() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                const search = document.getElementById('searchInput').value.trim().toLowerCase();
+                
+                filteredStudents = teacherStudents.filter(student => {
+                    const searchText = `${student.name} ${student.studentCode || student.id}`.toLowerCase();
+                    return searchText.includes(search);
+                });
+                
+                document.getElementById('studentsTable').innerHTML = renderTable(filteredStudents);
+            }, 300);
+        }
+        
+        initStudents();
+    </script>
+</body>
+</html>

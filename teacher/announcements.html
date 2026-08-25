@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الإعلانات | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'announcements';
+        
+        let currentUser = null;
+        let teacherData = null;
+        let announcements = [];
+        
+        async function initAnnouncements() {
+            try {
+                currentUser = await requireAuth('teacher');
+                if (!currentUser) return;
+                
+                if (!isTeacher(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                teacherData = await getDocument('teachers', currentUser.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = { classIds: [], stageIds: [] };
+                }
+                
+                const classIds = teacherData.classIds || [];
+                
+                const allAnnouncements = await getDocuments('announcements', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'createdAt', orderDirection: 'desc' });
+                
+                // تصفية الإعلانات الخاصة بالمعلم
+                announcements = allAnnouncements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'teachers' ||
+                    (a.targetType === 'class' && classIds.includes(a.targetClassId))
+                );
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الإعلانات</h1>
+                                <p class="page-subtitle">آخر الإعلانات والأخبار</p>
+                            </div>
+                        </div>
+                        
+                        <!-- عرض الإعلانات -->
+                        <div id="announcementsList">
+                            ${renderAnnouncements()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function renderAnnouncements() {
+            if (announcements.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-bell"></i></div>
+                        <div class="empty-state-title">لا توجد إعلانات</div>
+                        <div class="empty-state-text">لم يتم نشر أي إعلان بعد</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="timeline">
+                    ${announcements.map(announcement => `
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="announcement-card">
+                                <div class="announcement-header">
+                                    <h3 class="announcement-title">${escapeHtml(announcement.title)}</h3>
+                                    <span class="badge badge-royal">${getTargetLabel(announcement)}</span>
+                                </div>
+                                
+                                <p class="announcement-content">${escapeHtml(announcement.content)}</p>
+                                
+                                <span class="announcement-date">${formatDate(announcement.createdAt)}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function getTargetLabel(announcement) {
+            switch (announcement.targetType) {
+                case 'all': return 'الجميع';
+                case 'students': return 'الطلاب';
+                case 'teachers': return 'المعلمون';
+                case 'stage': return 'مرحلة';
+                case 'class': return 'فصل';
+                default: return '';
+            }
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        initAnnouncements();
+    </script>
+</body>
+</html>

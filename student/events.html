@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>الأحداث | الجيل الجديد</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { requireAuth } from '../js/auth.js';
+        import { getDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout, toggleSidebar } from '../js/components.js';
+        import { showToast, escapeHtml, formatDate, getTodayDate } from '../js/utils.js';
+        import { isStudent } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'events';
+        
+        let currentUser = null;
+        let allEvents = [];
+        let currentFilter = 'upcoming';
+        
+        async function initEvents() {
+            try {
+                currentUser = await requireAuth('student');
+                if (!currentUser) return;
+                
+                if (!isStudent(currentUser)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                allEvents = await getDocuments('events', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'date', orderDirection: 'desc' });
+                
+                buildPage();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildPage() {
+            const filteredEvents = getFilteredEvents();
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${renderSidebar(currentUser, currentPage)}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${renderHeader(currentUser)}
+                    </header>
+                    <main class="main-content-inner">
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الأحداث المدرسية</h1>
+                                <p class="page-subtitle">الأحداث والأخبار</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn ${currentFilter === 'upcoming' ? 'btn-primary' : 'btn-outline'}" onclick="filterEvents('upcoming')">القادمة</button>
+                            <button class="btn ${currentFilter === 'past' ? 'btn-primary' : 'btn-outline'}" onclick="filterEvents('past')">السابقة</button>
+                            <button class="btn ${currentFilter === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="filterEvents('all')">الكل</button>
+                        </div>
+                        
+                        <!-- عرض الأحداث -->
+                        <div id="eventsList">
+                            ${renderEvents(filteredEvents)}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEvents();
+        }
+        
+        function getFilteredEvents() {
+            const today = getTodayDate();
+            
+            switch (currentFilter) {
+                case 'upcoming':
+                    return allEvents.filter(e => e.date >= today);
+                case 'past':
+                    return allEvents.filter(e => e.date < today);
+                case 'all':
+                default:
+                    return allEvents;
+            }
+        }
+        
+        function renderEvents(events) {
+            if (events.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="empty-state-title">لا توجد أحداث</div>
+                        <div class="empty-state-text">لم يتم إضافة أي حدث بعد</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="timeline">
+                    ${events.map(event => {
+                        const eventDate = new Date(event.date);
+                        const day = String(eventDate.getDate()).padStart(2, '0');
+                        const month = eventDate.toLocaleDateString('ar-EG', { month: 'short' });
+                        
+                        return `
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="event-card">
+                                    <div class="event-date-box">
+                                        <span class="event-date-day">${day}</span>
+                                        <span class="event-date-month">${month}</span>
+                                    </div>
+                                    <div class="event-details">
+                                        <h3 class="event-title">${escapeHtml(event.title)}</h3>
+                                        
+                                        ${event.description ? `<p class="event-info">${escapeHtml(event.description)}</p>` : ''}
+                                        
+                                        <div class="d-flex items-center gap-2 flex-wrap">
+                                            <span class="event-info mb-0">📅 ${formatDate(event.date)}</span>
+                                            ${event.location ? `<span class="event-info mb-0">📍 ${escapeHtml(event.location)}</span>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        function setupEvents() {
+            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        }
+        
+        window.filterEvents = function(filter) {
+            currentFilter = filter;
+            buildPage();
+        };
+        
+        initEvents();
+    </script>
+</body>
+</html>

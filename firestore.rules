@@ -1,0 +1,342 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // Helper Functions
+    // ============================================
+    
+    // التحقق من تسجيل الدخول
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // الحصول على بيانات المستخدم الحالي
+    function getUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // التحقق من أن المستخدم نشط
+    function isActive() {
+      let user = getUser();
+      return user != null && user.status == 'active';
+    }
+    
+    // التحقق من دور المستخدم
+    function hasRole(role) {
+      let user = getUser();
+      return user != null && user.role == role;
+    }
+    
+    // التحقق من أن المستخدم Super Admin
+    function isSuperAdmin() {
+      return hasRole('super_admin');
+    }
+    
+    // التحقق من أن المستخدم Admin
+    function isAdmin() {
+      return hasRole('admin') || isSuperAdmin();
+    }
+    
+    // التحقق من أن المستخدم Teacher
+    function isTeacher() {
+      return hasRole('teacher');
+    }
+    
+    // التحقق من أن المستخدم Student
+    function isStudent() {
+      return hasRole('student');
+    }
+    
+    // التحقق من أن المستخدم يملك نفسه
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // الحصول على linkedId للمستخدم الحالي
+    function getLinkedId() {
+      let user = getUser();
+      return user != null ? user.linkedId : null;
+    }
+    
+    // التحقق من أن المستخدم يملك linkedId معين
+    function hasLinkedId(linkedId) {
+      let user = getUser();
+      return user != null && user.linkedId == linkedId;
+    }
+    
+    // ============================================
+    // Users Collection
+    // ============================================
+    match /users/{userId} {
+      // المستخدم يقرأ بياناته فقط
+      allow read: if isSignedIn() && isActive() && (
+        isOwner(userId) || 
+        isAdmin()
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && (
+        isAdmin()
+      );
+      
+      // منع تعديل الدور والصلاحيات من قبل غير Super Admin
+      allow update: if isSignedIn() && isActive() && (
+        isSuperAdmin() || 
+        (
+          isAdmin() && 
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.status == resource.data.status
+        )
+      );
+    }
+    
+    // ============================================
+    // Students Collection
+    // ============================================
+    match /students/{studentId} {
+      // Admin و Teacher يقرؤون
+      // Student يقرأ بياناته فقط
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() && hasLinkedId(studentId))
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+      
+      // منع تغيير userId أو studentCode
+      allow update: if isSignedIn() && isActive() && isAdmin() &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.studentCode == resource.data.studentCode;
+    }
+    
+    // ============================================
+    // Teachers Collection
+    // ============================================
+    match /teachers/{teacherId} {
+      // Admin يقرأ الكل
+      // Teacher يقرأ بياناته فقط
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        (isTeacher() && hasLinkedId(teacherId))
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Admins Collection
+    // ============================================
+    match /admins/{adminId} {
+      // Admin يقرأ
+      allow read: if isSignedIn() && isActive() && isAdmin();
+      
+      // Super Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isSuperAdmin();
+    }
+    
+    // ============================================
+    // Stages Collection
+    // ============================================
+    match /stages/{stageId} {
+      // الجميع يقرأ
+      allow read: if isSignedIn() && isActive();
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Classes Collection
+    // ============================================
+    match /classes/{classId} {
+      // Admin و Teacher يقرؤون
+      // Student يقرأ فصله فقط
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher() ||
+        isStudent()
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Subjects Collection
+    // ============================================
+    match /subjects/{subjectId} {
+      // Admin و Teacher يقرؤون
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher()
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Attendance Collection
+    // ============================================
+    match /attendance/{attendanceId} {
+      // Admin يقرأ الكل
+      // Teacher يقرأ حضور فصوله
+      // Student يقرأ حضوره فقط
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() && resource.data.studentId == getLinkedId())
+      );
+      
+      // Admin و Teacher يمكنهم الكتابة
+      allow create: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher()
+      );
+      
+      // Admin و Teacher يمكنهم التحديث
+      allow update: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        (isTeacher() && resource.data.recordedBy == request.auth.uid)
+      );
+      
+      // Admin فقط يمكنه الحذف
+      allow delete: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Expenses Collection
+    // ============================================
+    match /expenses/{expenseId} {
+      // Admin يقرأ الكل
+      // Student يقرأ مصروفاته فقط
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        (isStudent() && resource.data.studentId == getLinkedId())
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Announcements Collection
+    // ============================================
+    match /announcements/{announcementId} {
+      // الجميع يقرأ الإعلانات المنشورة
+      allow read: if isSignedIn() && isActive() && (
+        resource.data.status == 'published' ||
+        isAdmin()
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Messages Collection
+    // ============================================
+    match /messages/{messageId} {
+      // المستخدم يقرأ رسائله فقط (مرسل أو مستقبل)
+      allow read: if isSignedIn() && isActive() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // المستخدم يرسل رسائل
+      allow create: if isSignedIn() && isActive() && (
+        request.resource.data.senderId == request.auth.uid
+      );
+      
+      // المستخدم يحدّث رسائله (تحديث isRead)
+      allow update: if isSignedIn() && isActive() && (
+        resource.data.receiverId == request.auth.uid &&
+        request.resource.data.isRead == true
+      );
+      
+      // Admin يمكنه الحذف
+      allow delete: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Events Collection
+    // ============================================
+    match /events/{eventId} {
+      // الجميع يقرأ
+      allow read: if isSignedIn() && isActive();
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Schedules Collection
+    // ============================================
+    match /schedules/{scheduleId} {
+      // Admin و Teacher يقرؤون
+      // Student يقرأ جدول فصله
+      allow read: if isSignedIn() && isActive() && (
+        isAdmin() ||
+        isTeacher() ||
+        isStudent()
+      );
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // Settings Collection
+    // ============================================
+    match /settings/{settingId} {
+      // الجميع يقرأ الإعدادات العامة
+      allow read: if isSignedIn() && isActive();
+      
+      // Admin فقط يمكنه الكتابة
+      allow write: if isSignedIn() && isActive() && isAdmin();
+    }
+    
+    // ============================================
+    // System Logs Collection
+    // ============================================
+    match /system_logs/{logId} {
+      // Admin فقط يقرأ
+      allow read: if isSignedIn() && isActive() && isAdmin();
+      
+      // النظام يكتب (من Frontend مع Admin)
+      allow create: if isSignedIn() && isActive() && isAdmin();
+      
+      // منع التحديث والحذف
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // Notifications Collection
+    // ============================================
+    match /notifications/{notificationId} {
+      // المستخدم يقرأ إشعاراته فقط
+      allow read: if isSignedIn() && isActive() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // النظام يكتب
+      allow create: if isSignedIn() && isActive();
+      
+      // المستخدم يحدّث إشعاراته (تحديث isRead)
+      allow update: if isSignedIn() && isActive() && (
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.isRead == true
+      );
+      
+      // Admin يمكنه الحذف
+      allow delete: if isSignedIn() && isActive() && isAdmin();
+    }
+  }
+}
