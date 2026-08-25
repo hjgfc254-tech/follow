@@ -3,97 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>دخول المعلمين | الجيل الجديد</title>
+    <title>دخول المعلمين | مدرسة الجيل الجديد</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/design-system.css">
-    <link rel="stylesheet" href="../css/auth.css">
-    <link rel="stylesheet" href="../css/responsive.css">
+    <style>
+        :root {
+            --navy-deep: #0A2647;
+            --navy: #0F3460;
+            --royal: #1E5FBB;
+            --accent-red: #E63946;
+            --white: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            height: 100%;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: 100%;
+            background: linear-gradient(135deg, #0A2647 0%, #0F3460 30%, #1E5FBB 60%, #C92A2A 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: bgMove 60s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes bgMove {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .main-card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -15px rgba(10, 38, 71, 0.25);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            animation: cardIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            margin: auto;
+        }
+        
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .top-bar {
+            height: 5px;
+            background: linear-gradient(90deg, #0A2647 0%, #1E5FBB 50%, #E63946 100%);
+        }
+        
+        .card-content {
+            padding: 24px 22px 20px;
+            text-align: center;
+        }
+        
+        /* ============ الشعار ============ */
+        .logo-wrapper {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--white);
+            box-shadow: 0 8px 20px rgba(10, 38, 71, 0.15);
+            background: var(--white);
+        }
+        
+        .logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .logo-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: #1E5FBB;
+            background: #EBF3FF;
+        }
+        
+        /* ============ العنوان ============ */
+        .login-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #0A2647;
+            margin-bottom: 2px;
+        }
+        
+        .login-subtitle {
+            font-size: 12px;
+            color: #9CA3AF;
+            margin-bottom: 18px;
+        }
+        
+        /* ============ فاصل ============ */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #D1D5DB, transparent);
+        }
+        
+        .divider-text {
+            font-size: 11px;
+            color: #9CA3AF;
+            font-weight: 600;
+        }
+        
+        /* ============ الحقول ============ */
+        .input-group {
+            margin-bottom: 14px;
+            text-align: right;
+        }
+        
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0A2647;
+            margin-bottom: 6px;
+        }
+        
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-wrap .field-icon {
+            position: absolute;
+            right: 14px;
+            color: #9CA3AF;
+            font-size: 14px;
+            pointer-events: none;
+            transition: color 0.3s;
+        }
+        
+        .input-wrap:focus-within .field-icon {
+            color: #1E5FBB;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 40px 12px 14px;
+            border: 2px solid #E5E7EB;
+            border-radius: 14px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 15px;
+            color: #111827;
+            background: #F8FAFC;
+            transition: all 0.3s;
+            letter-spacing: 3px;
+            text-align: center;
+            direction: ltr;
+        }
+        
+        .form-input:focus {
+            border-color: #1E5FBB;
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(30, 95, 187, 0.1);
+            outline: none;
+        }
+        
+        .form-input::placeholder {
+            letter-spacing: 0;
+            color: #D1D5DB;
+            text-align: center;
+        }
+        
+        /* ============ زر الدخول ============ */
+        .login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #0A2647 0%, #1E5FBB 50%, #0F3460 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            color: var(--white);
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(30, 95, 187, 0.35);
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            animation: shineSweep 3s ease-in-out infinite;
+        }
+        
+        @keyframes shineSweep {
+            0%, 60% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(30, 95, 187, 0.5);
+        }
+        
+        .login-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* ============ رسالة الخطأ ============ */
+        .error-box {
+            display: none;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #DC2626;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-bottom: 14px;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        /* ============ التذييل ============ */
+        .footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px dashed #D1D5DB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #9CA3AF;
+        }
+        
+        .footer a {
+            color: #1E5FBB;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        /* ============ الموبايل ============ */
+        @media (max-width: 400px) {
+            .card-content {
+                padding: 18px 14px 16px;
+            }
+            
+            .logo-wrapper {
+                width: 65px;
+                height: 65px;
+            }
+            
+            .login-title {
+                font-size: 18px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="card-accent-bar"></div>
+    <div class="main-card">
+        <div class="top-bar"></div>
+        
+        <div class="card-content">
+            <!-- الشعار -->
+            <div class="logo-wrapper">
+                <img src="../index.png" alt="شعار المدرسة" class="logo-img" id="logoImg" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+                <div id="logoFallback" class="logo-fallback" style="display: none;">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+            </div>
             
-            <div class="card-body">
-                <!-- الهيدر -->
-                <div class="auth-header">
-                    <div class="auth-brand">
-                        <div class="auth-brand-icon">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <div class="auth-brand-text">
-                            <h3>دخول المعلمين</h3>
-                            <span>الجيل الجديد</span>
-                        </div>
-                    </div>
+            <!-- العنوان -->
+            <h1 class="login-title">دخول المعلمين</h1>
+            <p class="login-subtitle">مدرسة الجيل الجديد</p>
+            
+            <!-- فاصل -->
+            <div class="divider">
+                <div class="divider-line"></div>
+                <span class="divider-text">تسجيل الدخول</span>
+                <div class="divider-line"></div>
+            </div>
+            
+            <!-- رسالة الخطأ -->
+            <div class="error-box" id="errorBox">
+                <span id="errorText"></span>
+            </div>
+            
+            <!-- الحقول -->
+            <div class="input-group">
+                <label class="input-label">كود المعلم</label>
+                <div class="input-wrap">
+                    <i class="fas fa-chalkboard-teacher field-icon"></i>
+                    <input type="text" id="code" class="form-input" placeholder="••••" maxlength="4" inputmode="numeric" required>
                 </div>
-                
-                <!-- العنوان -->
-                <div>
-                    <h2 class="auth-title">بوابة المعلمين</h2>
-                    <p class="auth-subtitle">قم بتسجيل الدخول للمتابعة</p>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">كلمة المرور</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock field-icon"></i>
+                    <input type="password" id="password" class="form-input" placeholder="••••••" maxlength="6" inputmode="numeric" required>
                 </div>
-                
-                <!-- رسالة الخطأ -->
-                <div id="errorMessage" class="auth-error" style="display: none;">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span id="errorText"></span>
-                </div>
-                
-                <!-- نموذج الدخول -->
-                <form id="loginForm" class="auth-form">
-                    <div class="form-group">
-                        <label class="form-label">كود المعلم</label>
-                        <div class="input-wrapper">
-                            <input 
-                                type="text" 
-                                id="code" 
-                                class="form-control" 
-                                placeholder="أدخل الكود" 
-                                maxlength="4"
-                                inputmode="numeric"
-                                required
-                            >
-                            <i class="fas fa-key input-icon"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">كلمة المرور</label>
-                        <div class="input-wrapper">
-                            <input 
-                                type="password" 
-                                id="password" 
-                                class="form-control" 
-                                placeholder="●●●●●●" 
-                                maxlength="6"
-                                inputmode="numeric"
-                                required
-                            >
-                            <i class="fas fa-lock input-icon"></i>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="auth-btn" id="loginBtn">
-                        <i class="fas fa-sign-in-alt"></i>
-                        تسجيل الدخول
-                    </button>
-                </form>
-                
-                <!-- التذييل -->
-                <div class="auth-footer">
-                    <a href="../index.html">العودة للرئيسية</a>
-                    <span>إنشاء وبرمجة أ/ اسماعيل عماد</span>
-                </div>
+            </div>
+            
+            <!-- زر الدخول -->
+            <button class="login-btn" id="loginBtn" onclick="handleLogin()">
+                <i class="fas fa-sign-in-alt"></i>
+                تسجيل الدخول
+            </button>
+            
+            <!-- التذييل -->
+            <div class="footer">
+                <a href="../index.html">العودة</a>
+                <span>أ/ اسماعيل عماد</span>
             </div>
         </div>
     </div>
@@ -102,24 +396,21 @@
         import { login } from '../js/auth.js';
         import { validateCode, validatePassword } from '../js/utils.js';
         
-        const loginForm = document.getElementById('loginForm');
         const codeInput = document.getElementById('code');
         const passwordInput = document.getElementById('password');
         const loginBtn = document.getElementById('loginBtn');
-        const errorMessage = document.getElementById('errorMessage');
+        const errorBox = document.getElementById('errorBox');
         const errorText = document.getElementById('errorText');
         
         function showError(message) {
             errorText.textContent = message;
-            errorMessage.style.display = 'flex';
+            errorBox.style.display = 'block';
             setTimeout(() => {
-                errorMessage.style.display = 'none';
-            }, 5000);
+                errorBox.style.display = 'none';
+            }, 4000);
         }
         
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
+        window.handleLogin = async function() {
             const code = codeInput.value.trim();
             const password = passwordInput.value.trim();
             
@@ -137,14 +428,14 @@
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...';
             
             try {
-                const user = await login(code, password, 'teacher');
+                await login(code, password, 'teacher');
                 window.location.href = 'dashboard.html';
             } catch (error) {
                 showError(error.message);
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> تسجيل الدخول';
             }
-        });
+        };
         
         codeInput.addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);
@@ -152,6 +443,10 @@
         
         passwordInput.addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') handleLogin();
         });
     </script>
 </body>
