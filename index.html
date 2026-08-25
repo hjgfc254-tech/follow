@@ -8,88 +8,466 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="css/design-system.css">
-    <link rel="stylesheet" href="css/auth.css">
-    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        :root {
+            --navy-deep: #0A2647;
+            --navy: #0F3460;
+            --royal: #1E5FBB;
+            --accent-red: #E63946;
+            --white: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: 100%;
+            background: linear-gradient(135deg, #0A2647 0%, #0F3460 30%, #1E5FBB 60%, #C92A2A 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: bgMove 60s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes bgMove {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .main-card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -15px rgba(10, 38, 71, 0.25), 0 0 0 1px rgba(10, 38, 71, 0.05);
+            width: 100%;
+            max-width: 440px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            animation: cardIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            margin: auto;
+        }
+        
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .top-bar {
+            height: 6px;
+            background: linear-gradient(90deg, #0A2647 0%, #1E5FBB 50%, #E63946 100%);
+            animation: topBarGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes topBarGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+        
+        .card-content {
+            padding: 28px 24px 24px;
+            text-align: center;
+        }
+        
+        /* ============ الشعار ============ */
+        .logo-wrapper {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid var(--white);
+            box-shadow: 
+                0 12px 30px rgba(10, 38, 71, 0.2),
+                0 0 0 4px rgba(30, 95, 187, 0.1);
+            background: var(--white);
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes logoPulse {
+            0%, 100% { box-shadow: 0 12px 30px rgba(10, 38, 71, 0.2), 0 0 0 4px rgba(30, 95, 187, 0.1); }
+            50% { box-shadow: 0 12px 40px rgba(10, 38, 71, 0.3), 0 0 0 8px rgba(30, 95, 187, 0.05); }
+        }
+        
+        .logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .logo-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            color: #1E5FBB;
+            background: #EBF3FF;
+        }
+        
+        /* ============ اسم المدرسة ============ */
+        .school-name {
+            font-family: 'Cairo', sans-serif;
+            font-size: 26px;
+            font-weight: 900;
+            color: #0A2647;
+            margin-bottom: 2px;
+        }
+        
+        .school-slogan {
+            font-size: 15px;
+            color: #E63946;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        
+        /* ============ فاصل ============ */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #D1D5DB, transparent);
+        }
+        
+        .divider-text {
+            font-size: 13px;
+            color: #9CA3AF;
+            font-weight: 600;
+        }
+        
+        /* ============ الأزرار المذهلة ============ */
+        .role-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        /* زر الطالب - مذهل */
+        .student-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 22px;
+            border-radius: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #0A2647 0%, #1E5FBB 40%, #0F3460 70%, #0A2647 100%);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+            color: var(--white);
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-size: 19px;
+            font-weight: 900;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 10px 30px rgba(30, 95, 187, 0.4),
+                0 0 20px rgba(30, 95, 187, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.5px;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .student-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s;
+            animation: shineSweep 3s ease-in-out infinite;
+        }
+        
+        @keyframes shineSweep {
+            0%, 60% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .student-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 16px 40px rgba(30, 95, 187, 0.55),
+                0 0 40px rgba(30, 95, 187, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            animation-play-state: paused;
+        }
+        
+        .student-btn:active {
+            transform: translateY(0) scale(0.97);
+        }
+        
+        .student-btn .btn-icon-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: iconBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes iconBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* الأزرار الجانبية - مذهلة */
+        .side-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .side-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-size: 15px;
+            font-weight: 800;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.3px;
+        }
+        
+        .side-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .side-btn:hover::before {
+            left: 100%;
+        }
+        
+        .side-btn.teacher {
+            background: linear-gradient(135deg, #FFFFFF, #EBF3FF);
+            border: 2px solid #93C5FD;
+            color: #1E5FBB;
+            box-shadow: 
+                0 4px 15px rgba(30, 95, 187, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .side-btn.teacher:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 10px 30px rgba(30, 95, 187, 0.3),
+                0 0 20px rgba(30, 95, 187, 0.15);
+            border-color: #1E5FBB;
+        }
+        
+        .side-btn.teacher:active {
+            transform: scale(0.95);
+        }
+        
+        .side-btn.admin {
+            background: linear-gradient(135deg, #FFFFFF, #FFF7ED);
+            border: 2px solid #FDBA74;
+            color: #EA580C;
+            box-shadow: 
+                0 4px 15px rgba(234, 88, 12, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .side-btn.admin:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 10px 30px rgba(234, 88, 12, 0.3),
+                0 0 20px rgba(234, 88, 12, 0.15);
+            border-color: #EA580C;
+        }
+        
+        .side-btn.admin:active {
+            transform: scale(0.95);
+        }
+        
+        .side-btn i {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+        
+        .side-btn:hover i {
+            transform: scale(1.2) rotate(5deg);
+        }
+        
+        /* ============ التذييل ============ */
+        .footer {
+            margin-top: 20px;
+            padding-top: 14px;
+            border-top: 1px dashed #D1D5DB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            color: #9CA3AF;
+        }
+        
+        /* ============ الموبايل ============ */
+        @media (max-width: 400px) {
+            .card-content {
+                padding: 20px 14px 16px;
+            }
+            
+            .logo-wrapper {
+                width: 110px;
+                height: 110px;
+            }
+            
+            .school-name {
+                font-size: 22px;
+            }
+            
+            .student-btn {
+                padding: 18px;
+                font-size: 17px;
+            }
+            
+            .student-btn .btn-icon-wrap {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .side-btn {
+                padding: 12px;
+                font-size: 13px;
+                border-radius: 20px;
+            }
+            
+            .side-btn i {
+                font-size: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <!-- شريط التدرج العلوي -->
-            <div class="card-accent-bar"></div>
+    <div class="main-card">
+        <div class="top-bar"></div>
+        
+        <div class="card-content">
+            <!-- الشعار -->
+            <div class="logo-wrapper">
+                <img src="index.png" alt="شعار المدرسة" class="logo-img" id="logoImg" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+                <div id="logoFallback" class="logo-fallback" style="display: none;">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+            </div>
             
-            <div class="card-body">
-                <!-- الهيدر -->
-                <div class="auth-header">
-                    <div class="auth-brand">
-                        <div class="auth-brand-icon">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <div class="auth-brand-text">
-                            <h3>الجيل الجديد</h3>
-                            <span>نظام المتابعة الذكي</span>
-                        </div>
-                    </div>
-                    <div class="badge badge-premium">
-                        <i class="fas fa-star"></i> مفعّل
-                    </div>
-                </div>
-                
-                <!-- العنوان -->
-                <div>
-                    <h2 class="auth-title">مرحبًا بكم</h2>
-                    <p class="auth-subtitle">اختر نوع المستخدم للوصول إلى لوحة التحكم الخاصة بك</p>
-                </div>
-                
-                <!-- بطاقات الأدوار -->
-                <div class="role-cards">
-                    <div class="role-card admin-card" onclick="navigateToRole('admin')">
-                        <i class="fas fa-user-shield"></i>
-                        <span>الإدارة</span>
-                    </div>
-                    <div class="role-card" onclick="navigateToRole('teacher')">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <span>المعلمون</span>
-                    </div>
-                    <div class="role-card student-card" onclick="navigateToRole('student')">
+            <!-- اسم المدرسة -->
+            <h1 class="school-name">مدرسة الجيل الجديد</h1>
+            <p class="school-slogan">أمل نحو المستقبل</p>
+            
+            <!-- فاصل -->
+            <div class="divider">
+                <div class="divider-line"></div>
+                <span class="divider-text">اختر نوع الدخول</span>
+                <div class="divider-line"></div>
+            </div>
+            
+            <!-- الأزرار -->
+            <div class="role-buttons">
+                <!-- دخول الطالب -->
+                <button class="student-btn" onclick="navigateTo('student')">
+                    <span class="btn-icon-wrap">
                         <i class="fas fa-user-graduate"></i>
-                        <span>الطلاب</span>
-                    </div>
-                </div>
+                    </span>
+                    دخول الطالب
+                </button>
                 
-                <!-- التذييل -->
-                <div class="auth-footer">
-                    <span>الإصدار 2.0</span>
-                    <span>إنشاء وبرمجة أ/ اسماعيل عماد</span>
+                <!-- دخول المعلم والإدارة -->
+                <div class="side-buttons">
+                    <button class="side-btn teacher" onclick="navigateTo('teacher')">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        دخول المعلم
+                    </button>
+                    
+                    <button class="side-btn admin" onclick="navigateTo('admin')">
+                        <i class="fas fa-user-shield"></i>
+                        دخول الإدارة
+                    </button>
                 </div>
+            </div>
+            
+            <!-- التذييل -->
+            <div class="footer">
+                <span>إنشاء وبرمجة أ/ اسماعيل عماد</span>
             </div>
         </div>
     </div>
     
     <script>
-        /**
-         * التوجيه إلى صفحة تسجيل الدخول حسب الدور
-         */
-        function navigateToRole(role) {
-            switch (role) {
-                case 'admin':
-                    window.location.href = 'admin/login.html';
-                    break;
-                case 'teacher':
-                    window.location.href = 'teacher/login.html';
-                    break;
-                case 'student':
-                    window.location.href = 'student/login.html';
-                    break;
-                default:
-                    window.location.href = 'index.html';
-            }
+        function navigateTo(role) {
+            const routes = {
+                admin: 'admin/login.html',
+                teacher: 'teacher/login.html',
+                student: 'student/login.html'
+            };
+            window.location.href = routes[role] || 'index.html';
         }
     </script>
 </body>
