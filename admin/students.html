@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الطلاب | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل الطلاب...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { 
+            getAllDocuments, 
+            getDocuments, 
+            createDocument, 
+            updateDocument, 
+            deleteDocument,
+            setDocument,
+            queryDocumentsWithMultipleConditions
+        } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout } from '../js/components.js';
+        import { 
+            formatDate, 
+            showToast, 
+            escapeHtml, 
+            confirmAction,
+            validateCode,
+            validatePhone,
+            validateEmail,
+            getTodayDate
+        } from '../js/utils.js';
+        import { isAdmin, hasPermission } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'students';
+        
+        // حالة الصفحة
+        let allStudents = [];
+        let allStages = [];
+        let allClasses = [];
+        let filteredStudents = [];
+        
+        // تهيئة الصفحة
+        async function initStudents() {
+            try {
+                const profile = await requireAuth(['admin', 'super_admin']);
+                if (!profile) return;
+                
+                if (!isAdmin(profile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                // تحميل البيانات
+                await loadData();
+                
+                // بناء الصفحة
+                buildPage(profile);
+                
+            } catch (error) {
+                console.error('Error initializing students:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                const [students, stages, classes] = await Promise.all([
+                    getAllDocuments('students'),
+                    getAllDocuments('stages'),
+                    getAllDocuments('classes')
+                ]);
+                
+                allStudents = students;
+                allStages = stages;
+                allClasses = classes;
+                filteredStudents = [...students];
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'إدارة الطلاب');
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">إدارة الطلاب</h1>
+                                <p class="page-subtitle">إجمالي الطلاب: ${allStudents.length}</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="openAddStudentModal()">
+                                    + إضافة طالب
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search & Filters -->
+                        <div class="filters-container">
+                            <input 
+                                type="text" 
+                                class="search-input" 
+                                placeholder="بحث بالاسم أو الكود أو البريد أو الهاتف..." 
+                                id="searchInput"
+                            >
+                            <select class="filter-select" id="stageFilter">
+                                <option value="">جميع المراحل</option>
+                                ${allStages.map(stage => `
+                                    <option value="${stage.id}">${escapeHtml(stage.name)}</option>
+                                `).join('')}
+                            </select>
+                            <select class="filter-select" id="classFilter">
+                                <option value="">جميع الفصول</option>
+                                ${allClasses.map(cls => `
+                                    <option value="${cls.id}">${escapeHtml(cls.name)}</option>
+                                `).join('')}
+                            </select>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">جميع الحالات</option>
+                                <option value="active">نشط</option>
+                                <option value="inactive">غير نشط</option>
+                                <option value="suspended">موقوف</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Students Table -->
+                        <div id="studentsTable">
+                            ${renderStudentsTable(filteredStudents)}
+                        </div>
+                    </main>
+                </div>
+                
+                <!-- Add/Edit Student Modal -->
+                <div class="modal-overlay" id="studentModal" style="display: none;">
+                    <div class="modal" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="modalTitle">إضافة طالب</h3>
+                            <button class="modal-close" onclick="closeStudentModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="studentForm">
+                                <input type="hidden" id="studentId">
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label required">كود الطالب (4 أرقام)</label>
+                                        <input type="text" class="form-control" id="studentCode" 
+                                               maxlength="4" pattern="[0-9]{4}" inputmode="numeric" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label required">اسم الطالب</label>
+                                        <input type="text" class="form-control" id="studentName" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">البريد الإلكتروني</label>
+                                        <input type="email" class="form-control" id="studentEmail" dir="ltr">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">رقم الهاتف</label>
+                                        <input type="tel" class="form-control" id="studentPhone" 
+                                               maxlength="11" inputmode="numeric" dir="ltr">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">اسم ولي الأمر</label>
+                                        <input type="text" class="form-control" id="parentName">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">هاتف ولي الأمر</label>
+                                        <input type="tel" class="form-control" id="parentPhone" 
+                                               maxlength="11" inputmode="numeric" dir="ltr">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">النوع</label>
+                                        <select class="form-control" id="studentGender">
+                                            <option value="male">ذكر</option>
+                                            <option value="female">أنثى</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">تاريخ الميلاد</label>
+                                        <input type="date" class="form-control" id="studentBirthDate">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label required">المرحلة الدراسية</label>
+                                        <select class="form-control" id="studentStage" required>
+                                            <option value="">اختر المرحلة</option>
+                                            ${allStages.map(stage => `
+                                                <option value="${stage.id}">${escapeHtml(stage.name)}</option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label required">الفصل</label>
+                                        <select class="form-control" id="studentClass" required>
+                                            <option value="">اختر الفصل</option>
+                                            ${allClasses.map(cls => `
+                                                <option value="${cls.id}">${escapeHtml(cls.name)}</option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">العام الدراسي</label>
+                                        <input type="text" class="form-control" id="academicYear" value="2026/2027">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">الحالة</label>
+                                        <select class="form-control" id="studentStatus">
+                                            <option value="active">نشط</option>
+                                            <option value="inactive">غير نشط</option>
+                                            <option value="suspended">موقوف</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">ملاحظات</label>
+                                    <textarea class="form-control" id="studentNotes" rows="3"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeStudentModal()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="saveStudent()">حفظ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // عرض جدول الطلاب
+        function renderStudentsTable(students) {
+            if (students.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍🎓</div>
+                        <div class="empty-state-title">لا يوجد طلاب</div>
+                        <div class="empty-state-text">لم يتم العثور على أي طالب</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>الاسم</th>
+                                <th>المرحلة</th>
+                                <th>الفصل</th>
+                                <th>الهاتف</th>
+                                <th>ولي الأمر</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(student => {
+                                const stage = allStages.find(s => s.id === student.stageId);
+                                const cls = allClasses.find(c => c.id === student.classId);
+                                
+                                return `
+                                    <tr>
+                                        <td data-label="الكود">
+                                            <span class="font-numbers">${escapeHtml(student.studentCode)}</span>
+                                        </td>
+                                        <td data-label="الاسم">${escapeHtml(student.name)}</td>
+                                        <td data-label="المرحلة">${escapeHtml(stage?.name || '—')}</td>
+                                        <td data-label="الفصل">${escapeHtml(cls?.name || '—')}</td>
+                                        <td data-label="الهاتف" class="font-numbers" dir="ltr">${escapeHtml(student.phone || '—')}</td>
+                                        <td data-label="ولي الأمر">${escapeHtml(student.parentName || '—')}</td>
+                                        <td data-label="الحالة">${renderStatusBadge(student.status)}</td>
+                                        <td data-label="إجراءات" class="actions-cell">
+                                            <button class="btn btn-sm btn-outline" onclick="editStudent('${student.id}')">تعديل</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteStudent('${student.id}')">حذف</button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', toggleSidebar);
+            }
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+            
+            // البحث
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounceSearch);
+            }
+            
+            // الفلاتر
+            const stageFilter = document.getElementById('stageFilter');
+            const classFilter = document.getElementById('classFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            
+            if (stageFilter) stageFilter.addEventListener('change', applyFilters);
+            if (classFilter) classFilter.addEventListener('change', applyFilters);
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+        }
+        
+        // تبديل القائمة
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // البحث المؤجل
+        function debounceSearch() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                applyFilters();
+            }, 300);
+        }
+        
+        // تطبيق الفلاتر
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+            const stageId = document.getElementById('stageFilter')?.value || '';
+            const classId = document.getElementById('classFilter')?.value || '';
+            const status = document.getElementById('statusFilter')?.value || '';
+            
+            filteredStudents = allStudents.filter(student => {
+                // البحث
+                if (searchTerm) {
+                    const searchFields = [
+                        student.name,
+                        student.studentCode,
+                        student.email,
+                        student.phone
+                    ].join(' ').toLowerCase();
+                    
+                    if (!searchFields.includes(searchTerm)) return false;
+                }
+                
+                // فلتر المرحلة
+                if (stageId && student.stageId !== stageId) return false;
+                
+                // فلتر الفصل
+                if (classId && student.classId !== classId) return false;
+                
+                // فلتر الحالة
+                if (status && student.status !== status) return false;
+                
+                return true;
+            });
+            
+            const studentsTable = document.getElementById('studentsTable');
+            if (studentsTable) {
+                studentsTable.innerHTML = renderStudentsTable(filteredStudents);
+            }
+        }
+        
+        // فتح modal إضافة طالب
+        window.openAddStudentModal = function() {
+            document.getElementById('modalTitle').textContent = 'إضافة طالب';
+            document.getElementById('studentForm').reset();
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+        
+        // إغلاق modal
+        window.closeStudentModal = function() {
+            document.getElementById('studentModal').style.display = 'none';
+            document.body.style.overflow = '';
+        };
+        
+        // تعديل طالب
+        window.editStudent = function(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student) return;
+            
+            document.getElementById('modalTitle').textContent = 'تعديل طالب';
+            document.getElementById('studentId').value = studentId;
+            document.getElementById('studentCode').value = student.studentCode || '';
+            document.getElementById('studentName').value = student.name || '';
+            document.getElementById('studentEmail').value = student.email || '';
+            document.getElementById('studentPhone').value = student.phone || '';
+            document.getElementById('parentName').value = student.parentName || '';
+            document.getElementById('parentPhone').value = student.parentPhone || '';
+            document.getElementById('studentGender').value = student.gender || 'male';
+            document.getElementById('studentBirthDate').value = student.birthDate || '';
+            document.getElementById('studentStage').value = student.stageId || '';
+            document.getElementById('studentClass').value = student.classId || '';
+            document.getElementById('academicYear').value = student.academicYear || '2026/2027';
+            document.getElementById('studentStatus').value = student.status || 'active';
+            document.getElementById('studentNotes').value = student.notes || '';
+            
+            document.getElementById('studentModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+        
+        // حفظ طالب
+        window.saveStudent = async function() {
+            const studentId = document.getElementById('studentId').value;
+            const studentCode = document.getElementById('studentCode').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentEmail = document.getElementById('studentEmail').value.trim();
+            const studentPhone = document.getElementById('studentPhone').value.trim();
+            const parentName = document.getElementById('parentName').value.trim();
+            const parentPhone = document.getElementById('parentPhone').value.trim();
+            const studentGender = document.getElementById('studentGender').value;
+            const studentBirthDate = document.getElementById('studentBirthDate').value;
+            const studentStage = document.getElementById('studentStage').value;
+            const studentClass = document.getElementById('studentClass').value;
+            const academicYear = document.getElementById('academicYear').value.trim();
+            const studentStatus = document.getElementById('studentStatus').value;
+            const studentNotes = document.getElementById('studentNotes').value.trim();
+            
+            // التحقق
+            if (!validateCode(studentCode)) {
+                showToast('كود الطالب يجب أن يكون 4 أرقام', 'warning');
+                return;
+            }
+            
+            if (!studentName) {
+                showToast('الرجاء إدخال اسم الطالب', 'warning');
+                return;
+            }
+            
+            if (!studentStage || !studentClass) {
+                showToast('الرجاء اختيار المرحلة والفصل', 'warning');
+                return;
+            }
+            
+            // التحقق من عدم تكرار الكود
+            const codeExists = allStudents.some(s => 
+                s.studentCode === studentCode && s.id !== studentId
+            );
+            if (codeExists) {
+                showToast('كود الطالب مستخدم بالفعل', 'error');
+                return;
+            }
+            
+            const studentData = {
+                studentCode,
+                name: studentName,
+                email: studentEmail,
+                phone: studentPhone,
+                parentName,
+                parentPhone,
+                gender: studentGender,
+                birthDate: studentBirthDate,
+                stageId: studentStage,
+                classId: studentClass,
+                academicYear,
+                status: studentStatus,
+                notes: studentNotes
+            };
+            
+            try {
+                if (studentId) {
+                    // تحديث
+                    await updateDocument('students', studentId, studentData);
+                    showToast('تم تحديث بيانات الطالب بنجاح', 'success');
+                } else {
+                    // إنشاء
+                    await setDocument('students', studentCode, studentData);
+                    showToast('تم إضافة الطالب بنجاح', 'success');
+                }
+                
+                closeStudentModal();
+                await loadData();
+                buildPage(await requireAuth(['admin', 'super_admin']));
+                
+            } catch (error) {
+                console.error('Error saving student:', error);
+                showToast('حدث خطأ أثناء حفظ البيانات', 'error');
+            }
+        };
+        
+        // حذف طالب
+        window.deleteStudent = async function(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student) return;
+            
+            const confirmed = await confirmAction(
+                `هل أنت متأكد من حذف الطالب "${student.name}"؟`,
+                'تأكيد الحذف'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('students', studentId);
+                showToast('تم حذف الطالب بنجاح', 'success');
+                await loadData();
+                buildPage(await requireAuth(['admin', 'super_admin']));
+            } catch (error) {
+                console.error('Error deleting student:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        // بدء التحميل
+        initStudents();
+    </script>
+</body>
+</html>

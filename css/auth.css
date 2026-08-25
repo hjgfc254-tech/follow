@@ -1,0 +1,459 @@
+/* ============================================
+   css/auth.css
+   SchoolHub Pro - Authentication Pages
+   الإصدار: 2.0
+   ============================================ */
+
+/* ============ Auth Layout ============ */
+.auth-container {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-blue);
+    padding: var(--space-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-container::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -30%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(ellipse, rgba(230, 57, 70, 0.15) 0%, transparent 70%);
+    animation: authFloat 15s ease-in-out infinite;
+}
+
+.auth-container::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    right: -30%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(ellipse, rgba(30, 95, 187, 0.2) 0%, transparent 70%);
+    animation: authFloat 18s ease-in-out infinite reverse;
+}
+
+@keyframes authFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(30px, -30px); }
+}
+
+/* ============ Auth Box ============ */
+.auth-box {
+    background: var(--white);
+    border-radius: var(--radius-3xl);
+    box-shadow: var(--shadow-3xl);
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    animation: authBoxIn 0.5s var(--transition-spring);
+}
+
+.auth-box-wide {
+    max-width: 900px;
+}
+
+@keyframes authBoxIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* شريط علوي */
+.auth-box::before {
+    content: '';
+    display: block;
+    height: 6px;
+    background: var(--gradient-accent-bar);
+}
+
+.auth-box-content {
+    padding: var(--space-2xl) var(--space-xl) var(--space-xl);
+}
+
+/* ============ Auth Logo ============ */
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.auth-logo-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-lg);
+    background: var(--gradient-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 2rem;
+    box-shadow: var(--shadow-icon);
+}
+
+.auth-logo-text {
+    text-align: right;
+}
+
+.auth-logo-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-extrabold);
+    color: var(--navy-deep);
+    margin: 0;
+    line-height: var(--leading-tight);
+}
+
+.auth-logo-subtitle {
+    font-size: var(--text-xs);
+    color: var(--mute);
+    margin: 0;
+}
+
+/* ============ Auth Title ============ */
+.auth-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-extrabold);
+    color: var(--navy-deep);
+    text-align: center;
+    margin-bottom: var(--space-sm);
+}
+
+.auth-subtitle {
+    font-size: var(--text-base);
+    color: var(--body);
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    line-height: var(--leading-relaxed);
+}
+
+/* ============ Auth Form ============ */
+.auth-form {
+    margin-bottom: var(--space-md);
+}
+
+.auth-form .form-group {
+    margin-bottom: var(--space-lg);
+}
+
+.auth-form .form-control {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--text-base);
+    border-radius: var(--radius-lg);
+}
+
+.auth-form .btn {
+    padding: var(--space-md) var(--space-xl);
+    font-size: var(--text-base);
+    border-radius: var(--radius-full);
+    margin-top: var(--space-sm);
+}
+
+/* ============ Input Group ============ */
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group .form-control {
+    padding-left: 45px;
+}
+
+.input-group-icon {
+    position: absolute;
+    left: var(--space-md);
+    color: var(--mute);
+    font-size: var(--text-lg);
+    pointer-events: none;
+    transition: color var(--transition-fast);
+}
+
+.input-group:focus-within .input-group-icon {
+    color: var(--royal);
+}
+
+/* ============ Auth Options ============ */
+.auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-sm);
+}
+
+.auth-remember {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    cursor: pointer;
+    color: var(--body);
+    user-select: none;
+}
+
+.auth-remember input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--royal);
+}
+
+.auth-forgot {
+    color: var(--royal);
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: var(--weight-medium);
+    transition: color var(--transition-fast);
+}
+
+.auth-forgot:hover {
+    color: var(--navy);
+    text-decoration: underline;
+}
+
+/* ============ Auth Error ============ */
+.auth-error {
+    background: var(--error-bg);
+    color: var(--error);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    border: 1px solid var(--error-border);
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.auth-error-icon {
+    font-size: var(--text-lg);
+    flex-shrink: 0;
+}
+
+/* ============ Auth Success ============ */
+.auth-success {
+    background: var(--success-bg);
+    color: var(--success);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    border: 1px solid var(--success-border);
+}
+
+/* ============ Auth Footer ============ */
+.auth-footer {
+    text-align: center;
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--border-light);
+    font-size: var(--text-sm);
+    color: var(--mute);
+}
+
+.auth-footer a {
+    color: var(--royal);
+    text-decoration: none;
+    font-weight: var(--weight-semibold);
+}
+
+.auth-footer a:hover {
+    color: var(--navy);
+}
+
+/* ============ Role Cards ============ */
+.role-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.role-card {
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-xl) var(--space-lg);
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.role-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 4px;
+    background: var(--gradient-accent-bar);
+    opacity: 0;
+    transition: opacity var(--transition-smooth);
+}
+
+.role-card:hover::before {
+    opacity: 1;
+}
+
+.role-card:hover {
+    border-color: var(--royal);
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-4px);
+}
+
+.role-card-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-md);
+    font-size: 2.5rem;
+    transition: all var(--transition-bounce);
+}
+
+.role-card:hover .role-card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.role-card-icon.admin {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+.role-card-icon.teacher {
+    background: var(--royal-light);
+    color: var(--royal);
+}
+
+.role-card-icon.student {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.role-card-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-extrabold);
+    color: var(--navy-deep);
+    margin-bottom: var(--space-sm);
+}
+
+.role-card-text {
+    font-size: var(--text-sm);
+    color: var(--body);
+    line-height: var(--leading-relaxed);
+}
+
+.role-card-badge {
+    position: absolute;
+    top: var(--space-md);
+    left: var(--space-md);
+    background: var(--red);
+    color: var(--white);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-badge);
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: var(--space-md);
+    }
+    
+    .auth-box {
+        border-radius: var(--radius-2xl);
+    }
+    
+    .auth-box-content {
+        padding: var(--space-lg);
+    }
+    
+    .role-cards {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    
+    .role-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        text-align: right;
+        padding: var(--space-lg);
+    }
+    
+    .role-card-icon {
+        width: 56px;
+        height: 56px;
+        font-size: 1.8rem;
+        margin: 0;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: var(--space-sm);
+    }
+    
+    .auth-box-content {
+        padding: var(--space-md);
+    }
+    
+    .auth-logo {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .auth-logo-text {
+        text-align: center;
+    }
+    
+    .auth-title {
+        font-size: var(--text-xl);
+    }
+    
+    .auth-options {
+        flex-direction: column;
+        gap: var(--space-sm);
+        align-items: flex-start;
+    }
+    
+    .role-card-badge {
+        position: static;
+        display: inline-block;
+        margin-top: var(--space-sm);
+    }
+}

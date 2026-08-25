@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الطالب | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل لوحة التحكم...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatCard, handleLogout } from '../js/components.js';
+        import { formatDate, formatCurrency, formatDateTime, showToast, escapeHtml } from '../js/utils.js';
+        import { isStudent } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'dashboard';
+        
+        let currentProfile = null;
+        let studentData = null;
+        let studentExpenses = [];
+        let studentAnnouncements = [];
+        let studentMessages = [];
+        let studentEvents = [];
+        
+        // تهيئة الصفحة
+        async function initDashboard() {
+            try {
+                currentProfile = await requireAuth('student');
+                if (!currentProfile) return;
+                
+                if (!isStudent(currentProfile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(currentProfile);
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                // الحصول على بيانات الطالب
+                studentData = await getDocument('students', currentProfile.linkedId);
+                
+                if (!studentData) {
+                    studentData = {
+                        name: currentProfile.name || 'طالب',
+                        studentCode: currentProfile.linkedId,
+                        classId: '',
+                        stageId: ''
+                    };
+                }
+                
+                // تحميل المصروفات
+                studentExpenses = await getDocuments('expenses', [
+                    { field: 'studentId', operator: '==', value: currentProfile.linkedId }
+                ]);
+                
+                // تحميل الإعلانات
+                const allAnnouncements = await getDocuments('announcements', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 });
+                
+                studentAnnouncements = allAnnouncements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'students' ||
+                    (a.targetType === 'stage' && a.targetStageId === studentData.stageId) ||
+                    (a.targetType === 'class' && a.targetClassId === studentData.classId)
+                );
+                
+                // تحميل الرسائل
+                studentMessages = await getDocuments('messages', [
+                    { field: 'receiverId', operator: '==', value: currentProfile.uid }
+                ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 });
+                
+                // تحميل الأحداث القادمة
+                const today = new Date().toISOString().split('T')[0];
+                studentEvents = await getDocuments('events', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'date', orderDirection: 'asc', limit: 5 });
+                
+                studentEvents = studentEvents.filter(e => e.date >= today);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'لوحة التحكم');
+            
+            const unreadMessages = studentMessages.filter(m => !m.isRead).length;
+            const totalRemaining = studentExpenses.reduce((sum, e) => 
+                sum + ((Number(e.amount) || 0) - (Number(e.paidAmount) || 0)), 0
+            );
+            
+            const statsCards = [
+                renderStatCard({ 
+                    label: 'المصروفات المتبقية', 
+                    value: formatCurrency(totalRemaining), 
+                    icon: '💰', 
+                    color: 'blue' 
+                }),
+                renderStatCard({ 
+                    label: 'رسائل غير مقروءة', 
+                    value: unreadMessages, 
+                    icon: '✉️', 
+                    color: 'yellow' 
+                }),
+                renderStatCard({ 
+                    label: 'الإعلانات', 
+                    value: studentAnnouncements.length, 
+                    icon: '📢', 
+                    color: 'purple' 
+                }),
+                renderStatCard({ 
+                    label: 'الأحداث القادمة', 
+                    value: studentEvents.length, 
+                    icon: '📅', 
+                    color: 'green' 
+                })
+            ];
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">لوحة التحكم</h1>
+                                <p class="page-subtitle">مرحبًا ${escapeHtml(profile.name)} 👋</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistics -->
+                        <div class="stats-grid">
+                            ${statsCards.join('')}
+                        </div>
+                        
+                        <!-- Announcements & Messages -->
+                        <div class="dashboard-grid mt-2">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">آخر الإعلانات</h3>
+                                    <a href="announcements.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderAnnouncements(studentAnnouncements)}
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">آخر الرسائل</h3>
+                                    <a href="messages.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderMessages(studentMessages)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expenses & Events -->
+                        <div class="dashboard-grid mt-2">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">المصروفات</h3>
+                                    <a href="expenses.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderExpenses(studentExpenses.slice(0, 3))}
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">الأحداث القادمة</h3>
+                                    <a href="events.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderEvents(studentEvents.slice(0, 3))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // عرض الإعلانات
+        function renderAnnouncements(announcements) {
+            if (announcements.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📢</div>
+                        <div class="empty-state-title">لا توجد إعلانات</div>
+                    </div>
+                `;
+            }
+            
+            return announcements.map(announcement => `
+                <div class="list-item">
+                    <div class="list-item-icon" style="background: var(--royal-light);">📢</div>
+                    <div class="list-item-content">
+                        <p class="list-item-title">${escapeHtml(announcement.title)}</p>
+                        <p class="list-item-subtitle">${formatDate(announcement.createdAt)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // عرض الرسائل
+        function renderMessages(messages) {
+            if (messages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✉️</div>
+                        <div class="empty-state-title">لا توجد رسائل</div>
+                    </div>
+                `;
+            }
+            
+            return messages.map(message => `
+                <div class="message-item ${!message.isRead ? 'unread' : ''}">
+                    <div class="avatar ${!message.isRead ? 'avatar-red' : 'avatar-blue'}">
+                        ${escapeHtml((message.senderRole || 'م').charAt(0))}
+                    </div>
+                    <div class="list-item-content">
+                        <p class="message-sender">${message.senderRole === 'admin' ? 'الإدارة' : message.senderRole === 'teacher' ? 'مدرس' : 'مرسل'}</p>
+                        <p class="message-subject">${escapeHtml(message.subject)}</p>
+                        <p class="message-date">${formatDateTime(message.createdAt)}</p>
+                    </div>
+                    ${!message.isRead ? '<span class="message-unread-badge"></span>' : ''}
+                </div>
+            `).join('');
+        }
+        
+        // عرض المصروفات
+        function renderExpenses(expenses) {
+            if (expenses.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💰</div>
+                        <div class="empty-state-title">لا توجد مصروفات</div>
+                    </div>
+                `;
+            }
+            
+            return expenses.map(expense => {
+                const remaining = (Number(expense.amount) || 0) - (Number(expense.paidAmount) || 0);
+                
+                return `
+                    <div class="list-item">
+                        <div class="list-item-icon" style="background: var(--warning-bg);">💰</div>
+                        <div class="list-item-content">
+                            <p class="list-item-title">${escapeHtml(expense.title)}</p>
+                            <p class="list-item-subtitle">المتبقي: ${formatCurrency(remaining)}</p>
+                        </div>
+                        <span class="badge ${remaining === 0 ? 'badge-success' : 'badge-warning'}">
+                            ${remaining === 0 ? 'مدفوع' : 'متبقي'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // عرض الأحداث
+        function renderEvents(events) {
+            if (events.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-title">لا توجد أحداث</div>
+                    </div>
+                `;
+            }
+            
+            return events.map(event => `
+                <div class="list-item">
+                    <div class="list-item-icon" style="background: var(--success-bg);">📅</div>
+                    <div class="list-item-content">
+                        <p class="list-item-title">${escapeHtml(event.title)}</p>
+                        <p class="list-item-subtitle">${formatDate(event.date)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // بدء التحميل
+        initDashboard();
+    </script>
+</body>
+</html>

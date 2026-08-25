@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ملفي الشخصي | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل الملف الشخصي...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout } from '../js/components.js';
+        import { formatDate, calculateAge, showToast, escapeHtml } from '../js/utils.js';
+        import { isStudent } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'profile';
+        
+        let currentProfile = null;
+        let studentData = null;
+        let classData = null;
+        let stageData = null;
+        
+        // تهيئة الصفحة
+        async function initProfile() {
+            try {
+                currentProfile = await requireAuth('student');
+                if (!currentProfile) return;
+                
+                if (!isStudent(currentProfile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(currentProfile);
+                
+            } catch (error) {
+                console.error('Error initializing profile:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                // الحصول على بيانات الطالب
+                studentData = await getDocument('students', currentProfile.linkedId);
+                
+                if (!studentData) {
+                    studentData = {
+                        name: currentProfile.name || 'طالب',
+                        studentCode: currentProfile.linkedId,
+                        email: currentProfile.email || '',
+                        phone: '',
+                        parentName: '',
+                        parentPhone: '',
+                        gender: '',
+                        birthDate: '',
+                        stageId: '',
+                        classId: '',
+                        academicYear: '',
+                        status: currentProfile.status || 'active'
+                    };
+                }
+                
+                // تحميل الفصل والمرحلة
+                if (studentData.classId) {
+                    classData = await getDocument('classes', studentData.classId);
+                }
+                
+                if (studentData.stageId) {
+                    stageData = await getDocument('stages', studentData.stageId);
+                }
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'ملفي الشخصي');
+            
+            const age = studentData.birthDate ? calculateAge(studentData.birthDate) : null;
+            const genderLabel = studentData.gender === 'male' ? 'ذكر' : studentData.gender === 'female' ? 'أنثى' : '—';
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">ملفي الشخصي</h1>
+                                <p class="page-subtitle">بياناتك الشخصية</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Header -->
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                ${escapeHtml((studentData.name || 'ط').charAt(0))}
+                            </div>
+                            <h2 class="profile-name">${escapeHtml(studentData.name)}</h2>
+                            <p class="profile-role">طالب</p>
+                        </div>
+                        
+                        <!-- Profile Details -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">البيانات الشخصية</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="profile-details">
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">كود الطالب</div>
+                                        <div class="profile-detail-value font-numbers">${escapeHtml(studentData.studentCode || currentProfile.linkedId)}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">المرحلة الدراسية</div>
+                                        <div class="profile-detail-value">${escapeHtml(stageData?.name || '—')}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">الفصل</div>
+                                        <div class="profile-detail-value">${escapeHtml(classData?.name || '—')}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">العام الدراسي</div>
+                                        <div class="profile-detail-value">${escapeHtml(studentData.academicYear || '—')}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">النوع</div>
+                                        <div class="profile-detail-value">${escapeHtml(genderLabel)}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">تاريخ الميلاد</div>
+                                        <div class="profile-detail-value">${studentData.birthDate ? formatDate(studentData.birthDate) : '—'}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">العمر</div>
+                                        <div class="profile-detail-value font-numbers">${age ? age + ' سنة' : '—'}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">الحالة</div>
+                                        <div class="profile-detail-value">
+                                            <span class="badge badge-success">نشط</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        <div class="card mt-2">
+                            <div class="card-header">
+                                <h3 class="card-title">بيانات الاتصال</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="profile-details">
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">البريد الإلكتروني</div>
+                                        <div class="profile-detail-value" dir="ltr">${escapeHtml(studentData.email || currentProfile.email || '—')}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">رقم الهاتف</div>
+                                        <div class="profile-detail-value font-numbers" dir="ltr">${escapeHtml(studentData.phone || '—')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Parent Information -->
+                        <div class="card mt-2">
+                            <div class="card-header">
+                                <h3 class="card-title">بيانات ولي الأمر</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="profile-details">
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">اسم ولي الأمر</div>
+                                        <div class="profile-detail-value">${escapeHtml(studentData.parentName || '—')}</div>
+                                    </div>
+                                    
+                                    <div class="profile-detail-item">
+                                        <div class="profile-detail-label">هاتف ولي الأمر</div>
+                                        <div class="profile-detail-value font-numbers" dir="ltr">${escapeHtml(studentData.parentPhone || '—')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // بدء التحميل
+        initProfile();
+    </script>
+</body>
+</html>

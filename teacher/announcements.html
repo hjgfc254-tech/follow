@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعلانات | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل الإعلانات...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, handleLogout } from '../js/components.js';
+        import { formatDateTime, showToast, escapeHtml } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'announcements';
+        
+        let currentProfile = null;
+        let teacherData = null;
+        let announcements = [];
+        
+        // تهيئة الصفحة
+        async function initAnnouncements() {
+            try {
+                currentProfile = await requireAuth('teacher');
+                if (!currentProfile) return;
+                
+                if (!isTeacher(currentProfile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(currentProfile);
+                
+            } catch (error) {
+                console.error('Error initializing announcements:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                // الحصول على بيانات المدرس
+                teacherData = await getDocument('teachers', currentProfile.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = {
+                        classIds: [],
+                        stageIds: []
+                    };
+                }
+                
+                // تحميل الإعلانات المنشورة
+                const allAnnouncements = await getDocuments('announcements', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'createdAt', orderDirection: 'desc' });
+                
+                // تصفية الإعلانات الخاصة بالمدرس
+                const classIds = teacherData.classIds || [];
+                const stageIds = teacherData.stageIds || [];
+                
+                announcements = allAnnouncements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'teachers' ||
+                    (a.targetType === 'stage' && stageIds.includes(a.targetStageId)) ||
+                    (a.targetType === 'class' && classIds.includes(a.targetClassId))
+                );
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'الإعلانات');
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الإعلانات</h1>
+                                <p class="page-subtitle">آخر الإعلانات والأخبار</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Announcements Timeline -->
+                        <div class="timeline" id="announcementsTimeline">
+                            ${renderAnnouncements(announcements)}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // عرض الإعلانات
+        function renderAnnouncements(items) {
+            if (items.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📢</div>
+                        <div class="empty-state-title">لا توجد إعلانات</div>
+                        <div class="empty-state-text">لم يتم نشر أي إعلان بعد</div>
+                    </div>
+                `;
+            }
+            
+            return items.map(announcement => {
+                const targetLabel = getTargetLabel(announcement);
+                
+                return `
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <h3 class="announcement-title">${escapeHtml(announcement.title)}</h3>
+                                <span class="badge badge-royal">${escapeHtml(targetLabel)}</span>
+                            </div>
+                            
+                            <p class="announcement-content">${escapeHtml(announcement.content)}</p>
+                            
+                            <div class="d-flex justify-between items-center">
+                                <span class="announcement-date">${formatDateTime(announcement.createdAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // الحصول على تسمية الفئة المستهدفة
+        function getTargetLabel(announcement) {
+            switch (announcement.targetType) {
+                case 'all':
+                    return 'الجميع';
+                case 'students':
+                    return 'الطلاب';
+                case 'teachers':
+                    return 'المدرسون';
+                case 'admins':
+                    return 'الإدارة';
+                case 'stage':
+                    return 'مرحلة';
+                case 'class':
+                    return 'فصل';
+                default:
+                    return '';
+            }
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // بدء التحميل
+        initAnnouncements();
+    </script>
+</body>
+</html>

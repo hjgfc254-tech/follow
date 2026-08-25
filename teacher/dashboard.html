@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المدرس | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل لوحة التحكم...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { getDocument, getDocuments, getAllDocuments } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatCard, handleLogout } from '../js/components.js';
+        import { formatDate, formatDateTime, showToast, escapeHtml } from '../js/utils.js';
+        import { isTeacher } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'dashboard';
+        
+        let currentProfile = null;
+        let teacherData = null;
+        let teacherStudents = [];
+        let teacherAnnouncements = [];
+        let teacherMessages = [];
+        
+        // تهيئة الصفحة
+        async function initDashboard() {
+            try {
+                currentProfile = await requireAuth('teacher');
+                if (!currentProfile) return;
+                
+                if (!isTeacher(currentProfile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(currentProfile);
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                // الحصول على بيانات المدرس
+                teacherData = await getDocument('teachers', currentProfile.linkedId);
+                
+                if (!teacherData) {
+                    teacherData = {
+                        name: currentProfile.name || 'مدرس',
+                        teacherCode: currentProfile.linkedId,
+                        classIds: [],
+                        stageIds: []
+                    };
+                }
+                
+                // تحميل الطلاب المسندين
+                const classIds = teacherData.classIds || [];
+                
+                if (classIds.length > 0) {
+                    const allStudents = await getAllDocuments('students');
+                    teacherStudents = allStudents.filter(s => 
+                        classIds.includes(s.classId) && s.status === 'active'
+                    );
+                } else {
+                    teacherStudents = [];
+                }
+                
+                // تحميل الإعلانات
+                const allAnnouncements = await getDocuments('announcements', [
+                    { field: 'status', operator: '==', value: 'published' }
+                ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 });
+                
+                teacherAnnouncements = allAnnouncements.filter(a => 
+                    a.targetType === 'all' || 
+                    a.targetType === 'teachers' ||
+                    (a.targetType === 'stage' && (teacherData.stageIds || []).includes(a.targetStageId)) ||
+                    (a.targetType === 'class' && classIds.includes(a.targetClassId))
+                );
+                
+                // تحميل الرسائل
+                teacherMessages = await getDocuments('messages', [
+                    { field: 'receiverId', operator: '==', value: currentProfile.uid }
+                ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 });
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'لوحة التحكم');
+            
+            const unreadMessages = teacherMessages.filter(m => !m.isRead).length;
+            
+            const statsCards = [
+                renderStatCard({ 
+                    label: 'طلابي', 
+                    value: teacherStudents.length, 
+                    icon: '👨‍🎓', 
+                    color: 'blue' 
+                }),
+                renderStatCard({ 
+                    label: 'الفصول المسندة', 
+                    value: (teacherData.classIds || []).length, 
+                    icon: '🏫', 
+                    color: 'green' 
+                }),
+                renderStatCard({ 
+                    label: 'رسائل غير مقروءة', 
+                    value: unreadMessages, 
+                    icon: '✉️', 
+                    color: 'yellow' 
+                }),
+                renderStatCard({ 
+                    label: 'الإعلانات', 
+                    value: teacherAnnouncements.length, 
+                    icon: '📢', 
+                    color: 'purple' 
+                })
+            ];
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">لوحة التحكم</h1>
+                                <p class="page-subtitle">مرحبًا ${escapeHtml(profile.name)} 👋</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistics -->
+                        <div class="stats-grid">
+                            ${statsCards.join('')}
+                        </div>
+                        
+                        <!-- Students List -->
+                        <div class="card mt-2">
+                            <div class="card-header">
+                                <h3 class="card-title">طلابي</h3>
+                                <a href="students.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                            </div>
+                            <div class="card-body">
+                                ${renderStudentsList(teacherStudents.slice(0, 5))}
+                            </div>
+                        </div>
+                        
+                        <!-- Announcements & Messages -->
+                        <div class="dashboard-grid mt-2">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">آخر الإعلانات</h3>
+                                    <a href="announcements.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderAnnouncements(teacherAnnouncements)}
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">آخر الرسائل</h3>
+                                    <a href="messages.html" class="btn btn-sm btn-outline">عرض الكل</a>
+                                </div>
+                                <div class="card-body">
+                                    ${renderMessages(teacherMessages)}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // عرض قائمة الطلاب
+        function renderStudentsList(students) {
+            if (students.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍🎓</div>
+                        <div class="empty-state-title">لا يوجد طلاب</div>
+                        <div class="empty-state-text">لم يتم إسناد أي طلاب لك بعد</div>
+                    </div>
+                `;
+            }
+            
+            return students.map(student => `
+                <div class="list-item">
+                    <div class="avatar avatar-blue">${escapeHtml(student.name.charAt(0))}</div>
+                    <div class="list-item-content">
+                        <p class="list-item-title">${escapeHtml(student.name)}</p>
+                        <p class="list-item-subtitle">كود: ${escapeHtml(student.studentCode)}</p>
+                    </div>
+                    <span class="badge badge-success">نشط</span>
+                </div>
+            `).join('');
+        }
+        
+        // عرض الإعلانات
+        function renderAnnouncements(announcements) {
+            if (announcements.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📢</div>
+                        <div class="empty-state-title">لا توجد إعلانات</div>
+                    </div>
+                `;
+            }
+            
+            return announcements.map(announcement => `
+                <div class="list-item">
+                    <div class="list-item-icon" style="background: var(--royal-light);">📢</div>
+                    <div class="list-item-content">
+                        <p class="list-item-title">${escapeHtml(announcement.title)}</p>
+                        <p class="list-item-subtitle">${formatDate(announcement.createdAt)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // عرض الرسائل
+        function renderMessages(messages) {
+            if (messages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✉️</div>
+                        <div class="empty-state-title">لا توجد رسائل</div>
+                    </div>
+                `;
+            }
+            
+            return messages.map(message => `
+                <div class="message-item ${!message.isRead ? 'unread' : ''}">
+                    <div class="avatar ${!message.isRead ? 'avatar-red' : 'avatar-blue'}">
+                        ${escapeHtml((message.senderRole || 'م').charAt(0))}
+                    </div>
+                    <div class="list-item-content">
+                        <p class="message-sender">${escapeHtml(message.senderRole === 'admin' ? 'الإدارة' : 'مرسل')}</p>
+                        <p class="message-subject">${escapeHtml(message.subject)}</p>
+                        <p class="message-date">${formatDateTime(message.createdAt)}</p>
+                    </div>
+                    ${!message.isRead ? '<span class="message-unread-badge"></span>' : ''}
+                </div>
+            `).join('');
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // بدء التحميل
+        initDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المدرسين | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل المدرسين...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { 
+            getAllDocuments, 
+            setDocument, 
+            updateDocument, 
+            deleteDocument 
+        } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout } from '../js/components.js';
+        import { 
+            showToast, 
+            escapeHtml, 
+            confirmAction,
+            validateCode,
+            validatePhone,
+            validateEmail
+        } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'teachers';
+        
+        let allTeachers = [];
+        let allSubjects = [];
+        let allStages = [];
+        let allClasses = [];
+        let filteredTeachers = [];
+        
+        // تهيئة الصفحة
+        async function initTeachers() {
+            try {
+                const profile = await requireAuth(['admin', 'super_admin']);
+                if (!profile) return;
+                
+                if (!isAdmin(profile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(profile);
+                
+            } catch (error) {
+                console.error('Error initializing teachers:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                const [teachers, subjects, stages, classes] = await Promise.all([
+                    getAllDocuments('teachers'),
+                    getAllDocuments('subjects'),
+                    getAllDocuments('stages'),
+                    getAllDocuments('classes')
+                ]);
+                
+                allTeachers = teachers;
+                allSubjects = subjects;
+                allStages = stages;
+                allClasses = classes;
+                filteredTeachers = [...teachers];
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'إدارة المدرسين');
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">إدارة المدرسين</h1>
+                                <p class="page-subtitle">إجمالي المدرسين: ${allTeachers.length}</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="openAddTeacherModal()">
+                                    + إضافة مدرس
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search & Filters -->
+                        <div class="filters-container">
+                            <input 
+                                type="text" 
+                                class="search-input" 
+                                placeholder="بحث بالاسم أو الكود أو الهاتف..." 
+                                id="searchInput"
+                            >
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">جميع الحالات</option>
+                                <option value="active">نشط</option>
+                                <option value="inactive">غير نشط</option>
+                                <option value="suspended">موقوف</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Teachers Table -->
+                        <div id="teachersTable">
+                            ${renderTeachersTable(filteredTeachers)}
+                        </div>
+                    </main>
+                </div>
+                
+                <!-- Add/Edit Teacher Modal -->
+                <div class="modal-overlay" id="teacherModal" style="display: none;">
+                    <div class="modal" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="modalTitle">إضافة مدرس</h3>
+                            <button class="modal-close" onclick="closeTeacherModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="teacherForm">
+                                <input type="hidden" id="teacherId">
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label required">كود المدرس (4 أرقام)</label>
+                                        <input type="text" class="form-control" id="teacherCode" 
+                                               maxlength="4" pattern="[0-9]{4}" inputmode="numeric" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label required">اسم المدرس</label>
+                                        <input type="text" class="form-control" id="teacherName" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">البريد الإلكتروني</label>
+                                        <input type="email" class="form-control" id="teacherEmail" dir="ltr">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">رقم الهاتف</label>
+                                        <input type="tel" class="form-control" id="teacherPhone" 
+                                               maxlength="11" inputmode="numeric" dir="ltr">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">المواد الدراسية</label>
+                                    <div class="subjects-checkboxes" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                        ${allSubjects.map(subject => `
+                                            <label style="display: flex; align-items: center; gap: 5px;">
+                                                <input type="checkbox" value="${subject.id}" class="subject-checkbox">
+                                                ${escapeHtml(subject.name)}
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">الفصول المسندة</label>
+                                    <div class="classes-checkboxes" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                        ${allClasses.map(cls => `
+                                            <label style="display: flex; align-items: center; gap: 5px;">
+                                                <input type="checkbox" value="${cls.id}" class="class-checkbox">
+                                                ${escapeHtml(cls.name)}
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">الحالة</label>
+                                        <select class="form-control" id="teacherStatus">
+                                            <option value="active">نشط</option>
+                                            <option value="inactive">غير نشط</option>
+                                            <option value="suspended">موقوف</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">ملاحظات</label>
+                                    <textarea class="form-control" id="teacherNotes" rows="3"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeTeacherModal()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="saveTeacher()">حفظ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // عرض جدول المدرسين
+        function renderTeachersTable(teachers) {
+            if (teachers.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍🏫</div>
+                        <div class="empty-state-title">لا يوجد مدرسون</div>
+                        <div class="empty-state-text">لم يتم العثور على أي مدرس</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>الاسم</th>
+                                <th>البريد</th>
+                                <th>الهاتف</th>
+                                <th>المواد</th>
+                                <th>الفصول</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${teachers.map(teacher => {
+                                const subjectNames = (teacher.subjectIds || [])
+                                    .map(id => allSubjects.find(s => s.id === id)?.name || '')
+                                    .filter(Boolean)
+                                    .join('، ');
+                                
+                                const classNames = (teacher.classIds || [])
+                                    .map(id => allClasses.find(c => c.id === id)?.name || '')
+                                    .filter(Boolean)
+                                    .join('، ');
+                                
+                                return `
+                                    <tr>
+                                        <td data-label="الكود">
+                                            <span class="font-numbers">${escapeHtml(teacher.teacherCode)}</span>
+                                        </td>
+                                        <td data-label="الاسم">${escapeHtml(teacher.name)}</td>
+                                        <td data-label="البريد" dir="ltr">${escapeHtml(teacher.email || '—')}</td>
+                                        <td data-label="الهاتف" class="font-numbers" dir="ltr">${escapeHtml(teacher.phone || '—')}</td>
+                                        <td data-label="المواد">${escapeHtml(subjectNames || '—')}</td>
+                                        <td data-label="الفصول">${escapeHtml(classNames || '—')}</td>
+                                        <td data-label="الحالة">${renderStatusBadge(teacher.status)}</td>
+                                        <td data-label="إجراءات" class="actions-cell">
+                                            <button class="btn btn-sm btn-outline" onclick="editTeacher('${teacher.id}')">تعديل</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteTeacher('${teacher.id}')">حذف</button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+            
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.addEventListener('input', debounceSearch);
+            
+            const statusFilter = document.getElementById('statusFilter');
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        function debounceSearch() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => applyFilters(), 300);
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+            const status = document.getElementById('statusFilter')?.value || '';
+            
+            filteredTeachers = allTeachers.filter(teacher => {
+                if (searchTerm) {
+                    const searchFields = [
+                        teacher.name,
+                        teacher.teacherCode,
+                        teacher.phone,
+                        teacher.email
+                    ].join(' ').toLowerCase();
+                    
+                    if (!searchFields.includes(searchTerm)) return false;
+                }
+                
+                if (status && teacher.status !== status) return false;
+                
+                return true;
+            });
+            
+            const teachersTable = document.getElementById('teachersTable');
+            if (teachersTable) {
+                teachersTable.innerHTML = renderTeachersTable(filteredTeachers);
+            }
+        }
+        
+        // فتح modal
+        window.openAddTeacherModal = function() {
+            document.getElementById('modalTitle').textContent = 'إضافة مدرس';
+            document.getElementById('teacherForm').reset();
+            document.getElementById('teacherId').value = '';
+            document.querySelectorAll('.subject-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('teacherModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+        
+        window.closeTeacherModal = function() {
+            document.getElementById('teacherModal').style.display = 'none';
+            document.body.style.overflow = '';
+        };
+        
+        // تعديل مدرس
+        window.editTeacher = function(teacherId) {
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+            
+            document.getElementById('modalTitle').textContent = 'تعديل مدرس';
+            document.getElementById('teacherId').value = teacherId;
+            document.getElementById('teacherCode').value = teacher.teacherCode || '';
+            document.getElementById('teacherName').value = teacher.name || '';
+            document.getElementById('teacherEmail').value = teacher.email || '';
+            document.getElementById('teacherPhone').value = teacher.phone || '';
+            document.getElementById('teacherStatus').value = teacher.status || 'active';
+            document.getElementById('teacherNotes').value = teacher.notes || '';
+            
+            // تحديد المواد
+            document.querySelectorAll('.subject-checkbox').forEach(cb => {
+                cb.checked = (teacher.subjectIds || []).includes(cb.value);
+            });
+            
+            // تحديد الفصول
+            document.querySelectorAll('.class-checkbox').forEach(cb => {
+                cb.checked = (teacher.classIds || []).includes(cb.value);
+            });
+            
+            document.getElementById('teacherModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+        
+        // حفظ مدرس
+        window.saveTeacher = async function() {
+            const teacherId = document.getElementById('teacherId').value;
+            const teacherCode = document.getElementById('teacherCode').value.trim();
+            const teacherName = document.getElementById('teacherName').value.trim();
+            const teacherEmail = document.getElementById('teacherEmail').value.trim();
+            const teacherPhone = document.getElementById('teacherPhone').value.trim();
+            const teacherStatus = document.getElementById('teacherStatus').value;
+            const teacherNotes = document.getElementById('teacherNotes').value.trim();
+            
+            const subjectIds = Array.from(document.querySelectorAll('.subject-checkbox:checked')).map(cb => cb.value);
+            const classIds = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
+            
+            // التحقق
+            if (!validateCode(teacherCode)) {
+                showToast('كود المدرس يجب أن يكون 4 أرقام', 'warning');
+                return;
+            }
+            
+            if (!teacherName) {
+                showToast('الرجاء إدخال اسم المدرس', 'warning');
+                return;
+            }
+            
+            const codeExists = allTeachers.some(t => 
+                t.teacherCode === teacherCode && t.id !== teacherId
+            );
+            if (codeExists) {
+                showToast('كود المدرس مستخدم بالفعل', 'error');
+                return;
+            }
+            
+            const teacherData = {
+                teacherCode,
+                name: teacherName,
+                email: teacherEmail,
+                phone: teacherPhone,
+                subjectIds,
+                stageIds: allStages.map(s => s.id),
+                classIds,
+                status: teacherStatus,
+                notes: teacherNotes
+            };
+            
+            try {
+                if (teacherId) {
+                    await updateDocument('teachers', teacherId, teacherData);
+                    showToast('تم تحديث بيانات المدرس بنجاح', 'success');
+                } else {
+                    await setDocument('teachers', teacherCode, teacherData);
+                    showToast('تم إضافة المدرس بنجاح', 'success');
+                }
+                
+                closeTeacherModal();
+                await loadData();
+                buildPage(await requireAuth(['admin', 'super_admin']));
+                
+            } catch (error) {
+                console.error('Error saving teacher:', error);
+                showToast('حدث خطأ أثناء حفظ البيانات', 'error');
+            }
+        };
+        
+        // حذف مدرس
+        window.deleteTeacher = async function(teacherId) {
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+            
+            const confirmed = await confirmAction(
+                `هل أنت متأكد من حذف المدرس "${teacher.name}"؟`,
+                'تأكيد الحذف'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('teachers', teacherId);
+                showToast('تم حذف المدرس بنجاح', 'success');
+                await loadData();
+                buildPage(await requireAuth(['admin', 'super_admin']));
+            } catch (error) {
+                console.error('Error deleting teacher:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        // بدء التحميل
+        initTeachers();
+    </script>
+</body>
+</html>

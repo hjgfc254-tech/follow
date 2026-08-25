@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرسائل | SchoolHub Pro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <div class="loading-container" id="loadingContainer">
+            <div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">جاري تحميل الرسائل...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from '../js/firebase.js';
+        import { requireAuth } from '../js/auth.js';
+        import { 
+            getAllDocuments, 
+            getDocuments, 
+            createDocument,
+            createDocumentsBatch,
+            updateDocument,
+            deleteDocument
+        } from '../js/firestore.js';
+        import { renderSidebar, renderHeader, renderStatusBadge, handleLogout } from '../js/components.js';
+        import { 
+            formatDate, 
+            formatDateTime,
+            showToast, 
+            escapeHtml, 
+            confirmAction,
+            validateRequired
+        } from '../js/utils.js';
+        import { isAdmin } from '../js/permissions.js';
+        
+        const app = document.getElementById('app');
+        const currentPage = 'messages';
+        
+        let allMessages = [];
+        let allStudents = [];
+        let allTeachers = [];
+        let allStages = [];
+        let allClasses = [];
+        let currentProfile = null;
+        let currentView = 'inbox'; // inbox, sent, compose
+        
+        // تهيئة الصفحة
+        async function initMessages() {
+            try {
+                currentProfile = await requireAuth(['admin', 'super_admin']);
+                if (!currentProfile) return;
+                
+                if (!isAdmin(currentProfile)) {
+                    window.location.href = '../unauthorized.html';
+                    return;
+                }
+                
+                await loadData();
+                buildPage(currentProfile);
+                
+            } catch (error) {
+                console.error('Error initializing messages:', error);
+                app.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-state-icon">⚠️</div>
+                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // تحميل البيانات
+        async function loadData() {
+            try {
+                const [messages, students, teachers, stages, classes] = await Promise.all([
+                    getDocuments('messages', [], { orderBy: 'createdAt', orderDirection: 'desc' }),
+                    getAllDocuments('students'),
+                    getAllDocuments('teachers'),
+                    getAllDocuments('stages'),
+                    getAllDocuments('classes')
+                ]);
+                
+                allMessages = messages;
+                allStudents = students;
+                allTeachers = teachers;
+                allStages = stages;
+                allClasses = classes;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                throw error;
+            }
+        }
+        
+        // بناء الصفحة
+        function buildPage(profile) {
+            const sidebar = renderSidebar(profile, currentPage);
+            const header = renderHeader(profile, 'الرسائل');
+            
+            app.innerHTML = `
+                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <aside class="sidebar" id="sidebarContainer">
+                    ${sidebar}
+                </aside>
+                <div class="main-content">
+                    <header class="header" id="headerContainer">
+                        ${header}
+                    </header>
+                    <main class="main-content-inner">
+                        <!-- Page Header -->
+                        <div class="page-header">
+                            <div>
+                                <h1 class="page-title">الرسائل</h1>
+                                <p class="page-subtitle">إرسال واستقبال الرسائل</p>
+                            </div>
+                            <div class="page-actions">
+                                <button class="btn btn-primary" onclick="showCompose()">
+                                    + رسالة جديدة
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn ${currentView === 'inbox' ? 'btn-primary' : 'btn-outline'}" onclick="showInbox()">
+                                الوارد (${getInboxCount()})
+                            </button>
+                            <button class="btn ${currentView === 'sent' ? 'btn-primary' : 'btn-outline'}" onclick="showSent()">
+                                المرسل (${getSentCount()})
+                            </button>
+                        </div>
+                        
+                        <!-- Messages Content -->
+                        <div id="messagesContent">
+                            ${currentView === 'inbox' ? renderInbox() : currentView === 'sent' ? renderSent() : renderCompose()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            setupEventListeners();
+        }
+        
+        // حساب عدد رسائل الوارد
+        function getInboxCount() {
+            return allMessages.filter(m => m.receiverId === currentProfile.uid && !m.isRead).length;
+        }
+        
+        // حساب عدد رسائل المرسل
+        function getSentCount() {
+            return allMessages.filter(m => m.senderId === currentProfile.uid).length;
+        }
+        
+        // عرض الوارد
+        function renderInbox() {
+            const inboxMessages = allMessages.filter(m => m.receiverId === currentProfile.uid);
+            
+            if (inboxMessages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📥</div>
+                        <div class="empty-state-title">لا توجد رسائل واردة</div>
+                        <div class="empty-state-text">لم تصلك أي رسائل بعد</div>
+                    </div>
+                `;
+            }
+            
+            return inboxMessages.map(message => {
+                const sender = getUserName(message.senderId, message.senderRole);
+                
+                return `
+                    <div class="message-item ${!message.isRead ? 'unread' : ''}" onclick="viewMessage('${message.id}')">
+                        <div class="avatar ${message.isRead ? 'avatar-blue' : 'avatar-red'}">
+                            ${escapeHtml(sender.charAt(0))}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="d-flex justify-between items-center">
+                                <p class="message-sender">${escapeHtml(sender)}</p>
+                                ${!message.isRead ? '<span class="message-unread-badge"></span>' : ''}
+                            </div>
+                            <p class="message-subject">${escapeHtml(message.subject)}</p>
+                            <p class="message-date">${formatDateTime(message.createdAt)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // عرض المرسل
+        function renderSent() {
+            const sentMessages = allMessages.filter(m => m.senderId === currentProfile.uid);
+            
+            if (sentMessages.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📤</div>
+                        <div class="empty-state-title">لا توجد رسائل مرسلة</div>
+                        <div class="empty-state-text">لم ترسل أي رسائل بعد</div>
+                    </div>
+                `;
+            }
+            
+            return sentMessages.map(message => {
+                const receiver = getUserName(message.receiverId, message.receiverRole);
+                
+                return `
+                    <div class="message-item" onclick="viewMessage('${message.id}')">
+                        <div class="avatar avatar-green">
+                            ${escapeHtml(receiver.charAt(0))}
+                        </div>
+                        <div class="list-item-content">
+                            <p class="message-sender">إلى: ${escapeHtml(receiver)}</p>
+                            <p class="message-subject">${escapeHtml(message.subject)}</p>
+                            <p class="message-date">${formatDateTime(message.createdAt)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // عرض نموذج الإرسال
+        function renderCompose() {
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">رسالة جديدة</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label required">نوع المستلم</label>
+                            <select class="form-control" id="receiverType" onchange="toggleReceiverFields()">
+                                <option value="">اختر نوع المستلم</option>
+                                <option value="all_students">جميع الطلاب</option>
+                                <option value="all_teachers">جميع المدرسين</option>
+                                <option value="all">المدرسة كلها</option>
+                                <option value="stage">مرحلة معينة</option>
+                                <option value="class">فصل معين</option>
+                                <option value="student">طالب محدد</option>
+                                <option value="teacher">مدرس محدد</option>
+                            </select>
+                        </div>
+                        
+                        <div id="receiverFields" style="display: none;">
+                            <div class="form-group" id="stageField" style="display: none;">
+                                <label class="form-label">المرحلة</label>
+                                <select class="form-control" id="receiverStage">
+                                    <option value="">اختر المرحلة</option>
+                                    ${allStages.map(stage => `
+                                        <option value="${stage.id}">${escapeHtml(stage.name)}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="classField" style="display: none;">
+                                <label class="form-label">الفصل</label>
+                                <select class="form-control" id="receiverClass">
+                                    <option value="">اختر الفصل</option>
+                                    ${allClasses.map(cls => `
+                                        <option value="${cls.id}">${escapeHtml(cls.name)}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="studentField" style="display: none;">
+                                <label class="form-label">الطالب</label>
+                                <select class="form-control" id="receiverStudent">
+                                    <option value="">اختر الطالب</option>
+                                    ${allStudents.map(student => `
+                                        <option value="${student.userId || student.id}">${escapeHtml(student.name)} (${escapeHtml(student.studentCode)})</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="teacherField" style="display: none;">
+                                <label class="form-label">المدرس</label>
+                                <select class="form-control" id="receiverTeacher">
+                                    <option value="">اختر المدرس</option>
+                                    ${allTeachers.map(teacher => `
+                                        <option value="${teacher.userId || teacher.id}">${escapeHtml(teacher.name)} (${escapeHtml(teacher.teacherCode)})</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label required">الموضوع</label>
+                            <input type="text" class="form-control" id="messageSubject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label required">محتوى الرسالة</label>
+                            <textarea class="form-control" id="messageContent" rows="5" required></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2 justify-end">
+                            <button class="btn btn-secondary" onclick="showInbox()">إلغاء</button>
+                            <button class="btn btn-primary" onclick="sendMessage()">إرسال</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // تبديل حقول المستلم
+        window.toggleReceiverFields = function() {
+            const receiverType = document.getElementById('receiverType').value;
+            const receiverFields = document.getElementById('receiverFields');
+            const stageField = document.getElementById('stageField');
+            const classField = document.getElementById('classField');
+            const studentField = document.getElementById('studentField');
+            const teacherField = document.getElementById('teacherField');
+            
+            stageField.style.display = 'none';
+            classField.style.display = 'none';
+            studentField.style.display = 'none';
+            teacherField.style.display = 'none';
+            
+            if (receiverType === 'stage') {
+                receiverFields.style.display = 'block';
+                stageField.style.display = 'block';
+            } else if (receiverType === 'class') {
+                receiverFields.style.display = 'block';
+                classField.style.display = 'block';
+            } else if (receiverType === 'student') {
+                receiverFields.style.display = 'block';
+                studentField.style.display = 'block';
+            } else if (receiverType === 'teacher') {
+                receiverFields.style.display = 'block';
+                teacherField.style.display = 'block';
+            } else {
+                receiverFields.style.display = 'none';
+            }
+        };
+        
+        // الحصول على اسم المستخدم
+        function getUserName(userId, role) {
+            if (role === 'student') {
+                const student = allStudents.find(s => s.userId === userId || s.id === userId);
+                return student?.name || 'طالب';
+            } else if (role === 'teacher') {
+                const teacher = allTeachers.find(t => t.userId === userId || t.id === userId);
+                return teacher?.name || 'مدرس';
+            } else if (role === 'admin' || role === 'super_admin') {
+                return 'الإدارة';
+            }
+            return 'مستخدم';
+        }
+        
+        // عرض الوارد
+        window.showInbox = function() {
+            currentView = 'inbox';
+            buildPage(currentProfile);
+        };
+        
+        // عرض المرسل
+        window.showSent = function() {
+            currentView = 'sent';
+            buildPage(currentProfile);
+        };
+        
+        // عرض نموذج الإرسال
+        window.showCompose = function() {
+            currentView = 'compose';
+            buildPage(currentProfile);
+        };
+        
+        // عرض رسالة
+        window.viewMessage = async function(messageId) {
+            const message = allMessages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            // تحديث حالة القراءة
+            if (!message.isRead && message.receiverId === currentProfile.uid) {
+                await updateDocument('messages', messageId, { isRead: true, readAt: new Date() });
+                message.isRead = true;
+            }
+            
+            const sender = getUserName(message.senderId, message.senderRole);
+            const receiver = getUserName(message.receiverId, message.receiverRole);
+            
+            // عرض تفاصيل الرسالة
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">${escapeHtml(message.subject)}</h3>
+                        <button class="modal-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex justify-between mb-3">
+                            <div>
+                                <p class="text-muted mb-1" style="font-size: 0.85rem;">من: ${escapeHtml(sender)}</p>
+                                <p class="text-muted mb-1" style="font-size: 0.85rem;">إلى: ${escapeHtml(receiver)}</p>
+                            </div>
+                            <span class="text-muted" style="font-size: 0.85rem;">${formatDateTime(message.createdAt)}</span>
+                        </div>
+                        <div style="background: var(--page-bg); padding: 16px; border-radius: 8px;">
+                            <p style="white-space: pre-wrap;">${escapeHtml(message.content)}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary modal-close-btn">إغلاق</button>
+                        <button class="btn btn-danger" onclick="deleteMessage('${message.id}')">حذف</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            const closeModal = () => {
+                modal.remove();
+                document.body.style.overflow = '';
+            };
+            
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        };
+        
+        // إرسال رسالة
+        window.sendMessage = async function() {
+            const receiverType = document.getElementById('receiverType').value;
+            const subject = document.getElementById('messageSubject').value.trim();
+            const content = document.getElementById('messageContent').value.trim();
+            
+            if (!receiverType) {
+                showToast('الرجاء اختيار نوع المستلم', 'warning');
+                return;
+            }
+            
+            if (!validateRequired(subject)) {
+                showToast('الرجاء إدخال موضوع الرسالة', 'warning');
+                return;
+            }
+            
+            if (!validateRequired(content)) {
+                showToast('الرجاء إدخال محتوى الرسالة', 'warning');
+                return;
+            }
+            
+            try {
+                const receivers = getReceivers(receiverType);
+                
+                if (receivers.length === 0) {
+                    showToast('لا يوجد مستلمون لهذه الفئة', 'warning');
+                    return;
+                }
+                
+                // إنشاء رسائل متعددة
+                const messagesData = receivers.map(receiver => ({
+                    senderId: currentProfile.uid,
+                    senderRole: currentProfile.role,
+                    receiverId: receiver.userId,
+                    receiverRole: receiver.role,
+                    subject,
+                    content,
+                    isRead: false,
+                    readAt: null
+                }));
+                
+                await createDocumentsBatch('messages', messagesData.map(data => ({ data })));
+                
+                showToast(`تم إرسال الرسالة إلى ${receivers.length} مستلم`, 'success');
+                await loadData();
+                showInbox();
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('حدث خطأ أثناء إرسال الرسالة', 'error');
+            }
+        };
+        
+        // الحصول على المستلمين
+        function getReceivers(receiverType) {
+            switch (receiverType) {
+                case 'all_students':
+                    return allStudents
+                        .filter(s => s.userId)
+                        .map(s => ({ userId: s.userId, role: 'student' }));
+                        
+                case 'all_teachers':
+                    return allTeachers
+                        .filter(t => t.userId)
+                        .map(t => ({ userId: t.userId, role: 'teacher' }));
+                        
+                case 'all':
+                    return [
+                        ...allStudents.filter(s => s.userId).map(s => ({ userId: s.userId, role: 'student' })),
+                        ...allTeachers.filter(t => t.userId).map(t => ({ userId: t.userId, role: 'teacher' }))
+                    ];
+                    
+                case 'stage': {
+                    const stageId = document.getElementById('receiverStage').value;
+                    if (!stageId) return [];
+                    const stageStudents = allStudents.filter(s => s.stageId === stageId && s.userId);
+                    return stageStudents.map(s => ({ userId: s.userId, role: 'student' }));
+                }
+                
+                case 'class': {
+                    const classId = document.getElementById('receiverClass').value;
+                    if (!classId) return [];
+                    const classStudents = allStudents.filter(s => s.classId === classId && s.userId);
+                    return classStudents.map(s => ({ userId: s.userId, role: 'student' }));
+                }
+                
+                case 'student': {
+                    const studentId = document.getElementById('receiverStudent').value;
+                    if (!studentId) return [];
+                    return [{ userId: studentId, role: 'student' }];
+                }
+                
+                case 'teacher': {
+                    const teacherId = document.getElementById('receiverTeacher').value;
+                    if (!teacherId) return [];
+                    return [{ userId: teacherId, role: 'teacher' }];
+                }
+                
+                default:
+                    return [];
+            }
+        }
+        
+        // حذف رسالة
+        window.deleteMessage = async function(messageId) {
+            const confirmed = await confirmAction('هل أنت متأكد من حذف هذه الرسالة؟', 'تأكيد الحذف');
+            if (!confirmed) return;
+            
+            try {
+                await deleteDocument('messages', messageId);
+                showToast('تم حذف الرسالة بنجاح', 'success');
+                document.querySelector('.modal-overlay')?.remove();
+                document.body.style.overflow = '';
+                await loadData();
+                buildPage(currentProfile);
+            } catch (error) {
+                console.error('Error deleting message:', error);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        };
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+        }
+        
+        // بدء التحميل
+        initMessages();
+    </script>
+</body>
+</html>
