@@ -3,180 +3,649 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>لوحة التحكم | الجيل الجديد</title>
+    <title>بوابة الطالب | مدرسة الجيل الجديد</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/design-system.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/responsive.css">
+    <style>
+        :root {
+            --navy-deep: #0A2647;
+            --navy: #0F3460;
+            --royal: #1E5FBB;
+            --red: #C92A2A;
+            --accent-red: #E63946;
+            --red-light: #FEE2E2;
+            --white: #FFFFFF;
+            --soft: #F8FAFC;
+            --ink: #111827;
+            --body: #4B5563;
+            --mute: #9CA3AF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #F2F5F9;
+            min-height: 100vh;
+            color: var(--ink);
+            overflow-x: hidden;
+        }
+        
+        /* ============ Sidebar ============ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(180deg, #0A2647 0%, #0F3460 50%, #1E5FBB 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 20px rgba(10, 38, 71, 0.3);
+            transition: all 0.3s;
+            border-left: 3px solid #E63946;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-logo-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--white);
+            object-fit: contain;
+            padding: 3px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .sidebar-logo-fallback {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--royal);
+        }
+        
+        .sidebar-title {
+            color: var(--white);
+            font-size: 16px;
+            font-weight: 800;
+        }
+        
+        .sidebar-subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+        
+        .sidebar-section {
+            padding: 12px 20px 6px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-right: 3px solid transparent;
+        }
+        
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--white);
+            border-right-color: #E63946;
+        }
+        
+        .sidebar-link.active {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--white);
+            border-right-color: #E63946;
+        }
+        
+        .sidebar-link i {
+            font-size: 16px;
+            width: 22px;
+            text-align: center;
+        }
+        
+        /* ============ Header ============ */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 260px;
+            left: 0;
+            height: 64px;
+            background: var(--white);
+            border-bottom: 2px solid #E63946;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 90;
+            box-shadow: 0 2px 10px rgba(10, 38, 71, 0.05);
+        }
+        
+        .header-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            background: none;
+            border: 1px solid #E5E7EB;
+            color: var(--body);
+        }
+        
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0A2647, #1E5FBB);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 16px;
+            border: 2px solid #E63946;
+        }
+        
+        .header-user-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--ink);
+        }
+        
+        .header-user-role {
+            font-size: 11px;
+            color: var(--mute);
+        }
+        
+        /* ============ Main ============ */
+        .main-content {
+            margin-right: 260px;
+            padding-top: 64px;
+            min-height: 100vh;
+        }
+        
+        .main-inner {
+            padding: 24px;
+            max-width: 900px;
+        }
+        
+        /* ============ Welcome Banner ============ */
+        .welcome-banner {
+            background: linear-gradient(135deg, #0A2647 0%, #1E5FBB 60%, #E63946 100%);
+            border-radius: 20px;
+            padding: 24px;
+            color: var(--white);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            animation: bannerIn 0.6s ease;
+        }
+        
+        @keyframes bannerIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: bgMove 20s linear infinite;
+        }
+        
+        @keyframes bgMove {
+            from { transform: rotate(0); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .welcome-banner h1 {
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 4px;
+            position: relative;
+        }
+        
+        .welcome-banner p {
+            font-size: 13px;
+            opacity: 0.85;
+            position: relative;
+        }
+        
+        /* ============ Stats ============ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            border: 1px solid #E5E7EB;
+            border-top: 3px solid;
+            transition: all 0.3s;
+            cursor: pointer;
+            animation: fadeUp 0.5s ease backwards;
+        }
+        
+        .stat-card:nth-child(1) { animation-delay: 0.05s; border-top-color: #1E5FBB; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; border-top-color: #E63946; }
+        .stat-card:nth-child(3) { animation-delay: 0.15s; border-top-color: #0F3460; }
+        
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(10, 38, 71, 0.1);
+        }
+        
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin: 0 auto 8px;
+        }
+        
+        .stat-card:nth-child(1) .stat-icon { background: #EBF3FF; color: #1E5FBB; }
+        .stat-card:nth-child(2) .stat-icon { background: #FEE2E2; color: #E63946; }
+        .stat-card:nth-child(3) .stat-icon { background: #F0F6FF; color: #0F3460; }
+        
+        .stat-number {
+            font-family: 'Rubik', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--body);
+        }
+        
+        /* ============ Cards ============ */
+        .content-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #E5E7EB;
+            transition: all 0.3s;
+        }
+        
+        .content-card:hover {
+            box-shadow: 0 6px 16px rgba(10, 38, 71, 0.08);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px dashed #F3F4F6;
+        }
+        
+        .card-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0A2647;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-title i {
+            color: #1E5FBB;
+        }
+        
+        .view-all {
+            font-size: 12px;
+            color: #E63946;
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.3s;
+        }
+        
+        .view-all:hover {
+            color: #C92A2A;
+        }
+        
+        /* ============ List ============ */
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            transition: background 0.3s;
+        }
+        
+        .list-item:hover {
+            background: #F8FAFC;
+        }
+        
+        .list-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        
+        .list-icon.blue { background: #EBF3FF; color: #1E5FBB; }
+        .list-icon.red { background: #FEE2E2; color: #E63946; }
+        
+        .list-content {
+            flex: 1;
+        }
+        
+        .list-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        
+        .list-subtitle {
+            font-size: 11px;
+            color: var(--mute);
+        }
+        
+        /* ============ Responsive ============ */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .header {
+                right: 0;
+            }
+            
+            .header-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .header-user-info {
+                display: none;
+            }
+            
+            .main-content {
+                margin-right: 0;
+            }
+            
+            .main-inner {
+                padding: 16px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">جاري التحميل...</div>
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 38, 71, 0.5); z-index: 95;" onclick="toggleSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="../index.png" alt="الشعار" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="sidebar-logo-fallback" style="display: none;">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div>
+                <div class="sidebar-title">الجيل الجديد</div>
+                <div class="sidebar-subtitle">بوابة الطالب</div>
+            </div>
         </div>
-    </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">القائمة</div>
+            <a href="dashboard.html" class="sidebar-link active">
+                <i class="fas fa-home"></i>
+                الرئيسية
+            </a>
+            <a href="profile.html" class="sidebar-link">
+                <i class="fas fa-user"></i>
+                ملفي
+            </a>
+            <a href="announcements.html" class="sidebar-link">
+                <i class="fas fa-bell"></i>
+                الإعلانات
+            </a>
+            <a href="messages.html" class="sidebar-link">
+                <i class="fas fa-envelope"></i>
+                الرسائل
+            </a>
+            <a href="events.html" class="sidebar-link">
+                <i class="fas fa-calendar-alt"></i>
+                الأحداث
+            </a>
+        </nav>
+        <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="#" class="sidebar-link" id="logoutBtn" style="padding: 10px 0;">
+                <i class="fas fa-sign-out-alt"></i>
+                تسجيل الخروج
+            </a>
+        </div>
+    </aside>
+    
+    <!-- Header -->
+    <header class="header">
+        <button class="header-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="header-user">
+            <div class="header-avatar" id="userInitial">ط</div>
+            <div class="header-user-info">
+                <div class="header-user-name" id="userName">طالب</div>
+                <div class="header-user-role">طالب</div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main -->
+    <main class="main-content">
+        <div class="main-inner">
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+                <h1 id="welcomeText">أهلًا بك</h1>
+                <p>نتمنى لك يومًا دراسيًا موفقًا</p>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card" onclick="location.href='messages.html'">
+                    <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="stat-number" id="msgCount">0</div>
+                    <div class="stat-label">رسائل جديدة</div>
+                </div>
+                <div class="stat-card" onclick="location.href='announcements.html'">
+                    <div class="stat-icon"><i class="fas fa-bell"></i></div>
+                    <div class="stat-number" id="announceCount">0</div>
+                    <div class="stat-label">إعلانات</div>
+                </div>
+                <div class="stat-card" onclick="location.href='events.html'">
+                    <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="stat-number" id="eventCount">0</div>
+                    <div class="stat-label">أحداث</div>
+                </div>
+            </div>
+            
+            <!-- Announcements -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-bullhorn"></i> آخر الإعلانات</div>
+                    <a href="announcements.html" class="view-all">عرض الكل</a>
+                </div>
+                <div id="announcementsList">
+                    <p style="color: #9CA3AF; text-align: center; font-size: 13px;">جاري التحميل...</p>
+                </div>
+            </div>
+            
+            <!-- Events -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-star"></i> الأحداث القادمة</div>
+                    <a href="events.html" class="view-all">عرض الكل</a>
+                </div>
+                <div id="eventsList">
+                    <p style="color: #9CA3AF; text-align: center; font-size: 13px;">جاري التحميل...</p>
+                </div>
+            </div>
+        </div>
+    </main>
     
     <script type="module">
         import { requireAuth } from '../js/auth.js';
         import { getDocument, getDocuments } from '../js/firestore.js';
-        import { renderSidebar, renderHeader, renderStatCard, handleLogout, toggleSidebar } from '../js/components.js';
-        import { showToast, escapeHtml, formatDate } from '../js/utils.js';
-        import { isStudent } from '../js/permissions.js';
+        import { formatDate } from '../js/utils.js';
         
-        const app = document.getElementById('app');
-        const currentPage = 'dashboard';
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+        };
         
-        let currentUser = null;
-        let studentData = null;
-        let announcements = [];
-        let messages = [];
-        let events = [];
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { clearSession } = await import('../js/utils.js');
+            clearSession();
+            window.location.href = '../index.html';
+        });
         
         async function initDashboard() {
             try {
-                currentUser = await requireAuth('student');
-                if (!currentUser) return;
+                const user = await requireAuth('student');
+                if (!user) return;
                 
-                if (!isStudent(currentUser)) {
-                    window.location.href = '../unauthorized.html';
-                    return;
-                }
+                document.getElementById('userName').textContent = user.name || 'طالب';
+                document.getElementById('userInitial').textContent = (user.name || 'ط').charAt(0);
+                document.getElementById('welcomeText').textContent = `أهلًا ${user.name}`;
                 
-                // الحصول على بيانات الطالب
-                studentData = await getDocument('students', currentUser.linkedId);
-                
-                if (!studentData) {
-                    studentData = {
-                        name: currentUser.name || 'طالب',
-                        studentCode: currentUser.linkedId,
-                        stageId: '',
-                        classId: ''
-                    };
-                }
-                
-                // تحميل الإعلانات والرسائل والأحداث
-                const [allAnnouncements, allMessages, allEvents] = await Promise.all([
+                const [announcements, messages, events] = await Promise.all([
                     getDocuments('announcements', [
                         { field: 'status', operator: '==', value: 'published' }
                     ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
                     getDocuments('messages', [
-                        { field: 'receiverId', operator: '==', value: currentUser.code }
+                        { field: 'receiverId', operator: '==', value: user.code }
                     ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
                     getDocuments('events', [
                         { field: 'status', operator: '==', value: 'published' }
                     ], { orderBy: 'date', orderDirection: 'asc', limit: 5 })
                 ]);
                 
-                // تصفية الإعلانات الخاصة بالطالب
-                announcements = allAnnouncements.filter(a => 
-                    a.targetType === 'all' || 
-                    a.targetType === 'students' ||
-                    (a.targetType === 'stage' && a.targetStageId === studentData.stageId) ||
-                    (a.targetType === 'class' && a.targetClassId === studentData.classId)
-                );
+                const unreadMessages = messages.filter(m => !m.isRead).length;
+                document.getElementById('msgCount').textContent = unreadMessages;
+                document.getElementById('announceCount').textContent = announcements.length;
+                document.getElementById('eventCount').textContent = events.length;
                 
-                messages = allMessages;
-                events = allEvents;
+                const announcementsList = document.getElementById('announcementsList');
+                if (announcements.length > 0) {
+                    announcementsList.innerHTML = announcements.map(a => `
+                        <div class="list-item">
+                            <div class="list-icon blue"><i class="fas fa-bullhorn"></i></div>
+                            <div class="list-content">
+                                <div class="list-title">${a.title}</div>
+                                <div class="list-subtitle">${formatDate(a.createdAt)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    announcementsList.innerHTML = '<p style="color: #9CA3AF; text-align: center; font-size: 13px;">لا توجد إعلانات</p>';
+                }
                 
-                buildPage();
+                const eventsList = document.getElementById('eventsList');
+                if (events.length > 0) {
+                    eventsList.innerHTML = events.map(e => `
+                        <div class="list-item">
+                            <div class="list-icon red"><i class="fas fa-star"></i></div>
+                            <div class="list-content">
+                                <div class="list-title">${e.title}</div>
+                                <div class="list-subtitle">${formatDate(e.date)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    eventsList.innerHTML = '<p style="color: #9CA3AF; text-align: center; font-size: 13px;">لا توجد أحداث</p>';
+                }
                 
             } catch (error) {
                 console.error('Error:', error);
-                app.innerHTML = `
-                    <div class="error-state">
-                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
-                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
-                    </div>
-                `;
             }
-        }
-        
-        function buildPage() {
-            const unreadMessages = messages.filter(m => !m.isRead).length;
-            
-            app.innerHTML = `
-                <div class="sidebar-overlay" id="sidebarOverlay"></div>
-                <aside class="sidebar" id="sidebarContainer">
-                    ${renderSidebar(currentUser, currentPage)}
-                </aside>
-                <div class="main-content">
-                    <header class="header" id="headerContainer">
-                        ${renderHeader(currentUser)}
-                    </header>
-                    <main class="main-content-inner">
-                        <div class="page-header">
-                            <div>
-                                <h1 class="page-title">لوحة التحكم</h1>
-                                <p class="page-subtitle">مرحبًا ${escapeHtml(currentUser.name)} 👋</p>
-                            </div>
-                        </div>
-                        
-                        <!-- الإحصائيات -->
-                        <div class="stats-grid">
-                            ${renderStatCard({ label: 'رسائل غير مقروءة', value: unreadMessages, icon: 'fa-envelope', color: 'warning' })}
-                            ${renderStatCard({ label: 'الإعلانات', value: announcements.length, icon: 'fa-bell', color: 'royal' })}
-                            ${renderStatCard({ label: 'الأحداث', value: events.length, icon: 'fa-calendar-alt', color: 'success' })}
-                        </div>
-                        
-                        <!-- آخر الإعلانات -->
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h3 class="card-title">آخر الإعلانات</h3>
-                                <a href="announcements.html" class="btn btn-sm btn-outline">عرض الكل</a>
-                            </div>
-                            <div class="card-body">
-                                ${announcements.length > 0 ? announcements.map(a => `
-                                    <div class="list-item">
-                                        <div class="list-item-icon"><i class="fas fa-bell"></i></div>
-                                        <div class="list-item-content">
-                                            <p class="list-item-title">${escapeHtml(a.title)}</p>
-                                            <p class="list-item-subtitle">${formatDate(a.createdAt)}</p>
-                                        </div>
-                                    </div>
-                                `).join('') : '<p class="text-muted text-center">لا توجد إعلانات</p>'}
-                            </div>
-                        </div>
-                        
-                        <!-- الأحداث القادمة -->
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h3 class="card-title">الأحداث القادمة</h3>
-                                <a href="events.html" class="btn btn-sm btn-outline">عرض الكل</a>
-                            </div>
-                            <div class="card-body">
-                                ${events.length > 0 ? events.map(e => `
-                                    <div class="list-item">
-                                        <div class="list-item-icon"><i class="fas fa-calendar-alt"></i></div>
-                                        <div class="list-item-content">
-                                            <p class="list-item-title">${escapeHtml(e.title)}</p>
-                                            <p class="list-item-subtitle">${formatDate(e.date)}</p>
-                                        </div>
-                                    </div>
-                                `).join('') : '<p class="text-muted text-center">لا توجد أحداث</p>'}
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            `;
-            
-            setupEvents();
-        }
-        
-        function setupEvents() {
-            document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
-            document.getElementById('sidebarOverlay')?.addEventListener('click', toggleSidebar);
-            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
         }
         
         initDashboard();
