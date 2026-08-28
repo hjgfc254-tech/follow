@@ -3,26 +3,783 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>ملفي | الجيل الجديد</title>
+    <title>الملف الشخصي | مدارس الجيل الجديد الخاصة</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/design-system.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/responsive.css">
+    <style>
+        :root {
+            /* Primary Brand Colors */
+            --navy-deep: #0A2647;
+            --navy-mid: #0F3460;
+            --royal-blue: #1E5FBB;
+            --blue-light: #EBF3FF;
+            
+            /* Accent Colors */
+            --accent-red: #DC2626;
+            --red-dark: #B91C1C;
+            --red-light: #FEE2E2;
+            
+            /* Neutrals */
+            --white: #FFFFFF;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            
+            /* Typography */
+            --font-primary: 'Cairo', sans-serif;
+            --font-numbers: 'Rubik', sans-serif;
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+            --space-3xl: 48px;
+            
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-xs: 0 1px 2px rgba(10, 38, 71, 0.04);
+            --shadow-sm: 0 1px 3px rgba(10, 38, 71, 0.08);
+            --shadow-md: 0 4px 12px rgba(10, 38, 71, 0.1);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-base: 250ms ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-primary);
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* ============ SIDEBAR ============ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 248px;
+            background: var(--navy-deep);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 16px rgba(10, 38, 71, 0.15);
+            transition: transform var(--transition-base);
+        }
+        
+        .sidebar-brand {
+            padding: var(--space-xl) var(--space-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-brand-top {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .sidebar-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 3px;
+        }
+        
+        .sidebar-logo i {
+            font-size: 20px;
+            color: var(--royal-blue);
+        }
+        
+        .sidebar-brand h1 {
+            color: var(--white);
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+        
+        .sidebar-brand p {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .sidebar-accent {
+            width: 32px;
+            height: 2px;
+            background: var(--accent-red);
+            border-radius: var(--radius-full);
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: var(--space-lg) var(--space-md);
+            overflow-y: auto;
+        }
+        
+        .sidebar-nav-group {
+            margin-bottom: var(--space-lg);
+        }
+        
+        .sidebar-nav-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0 var(--space-sm);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: 10px var(--space-sm);
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+        
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--white);
+        }
+        
+        .sidebar-link.active {
+            background: rgba(30, 95, 187, 0.25);
+            color: var(--white);
+        }
+        
+        .sidebar-link.active::before {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 24px;
+            background: var(--accent-red);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        
+        .sidebar-link i {
+            font-size: 15px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-logout {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: 10px var(--space-sm);
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            font-family: var(--font-primary);
+        }
+        
+        .sidebar-logout:hover {
+            background: rgba(220, 38, 38, 0.15);
+            color: #FCA5A5;
+        }
+        
+        .sidebar-logout i {
+            font-size: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* ============ HEADER ============ */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 248px;
+            left: 0;
+            height: 60px;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-xl);
+            z-index: 900;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .header-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            background: none;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            font-size: 16px;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .header-toggle:hover {
+            background: var(--gray-100);
+            border-color: var(--royal-blue);
+            color: var(--royal-blue);
+        }
+        
+        .header-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--navy-deep);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+        }
+        
+        .header-user-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .header-user-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .header-user-role {
+            font-size: 10px;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+        
+        /* ============ MAIN CONTENT ============ */
+        .main-content {
+            margin-right: 248px;
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+        
+        .main-inner {
+            padding: var(--space-xl);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* ============ PAGE HEADER ============ */
+        .page-header {
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .page-header-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--navy-deep);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .page-header-description {
+            font-size: 13px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+        
+        .page-header-accent {
+            width: 48px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-red) 0%, var(--royal-blue) 100%);
+            border-radius: var(--radius-full);
+            margin-top: var(--space-md);
+        }
+        
+        /* ============ STUDENT IDENTITY CARD ============ */
+        .identity-card {
+            background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy-mid 50%, var(--royal-blue) 100%);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            margin-bottom: var(--space-2xl);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .identity-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            animation: patternMove 30s linear infinite;
+        }
+        
+        @keyframes patternMove {
+            from { transform: translate(0, 0); }
+            to { transform: translate(24px, 24px); }
+        }
+        
+        .identity-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-red);
+        }
+        
+        .identity-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xl);
+        }
+        
+        .identity-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-lg);
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--navy-deep);
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .identity-info {
+            flex: 1;
+        }
+        
+        .identity-name {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--white);
+            margin-bottom: var(--space-xs);
+            line-height: 1.2;
+        }
+        
+        .identity-role {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+        }
+        
+        .identity-details {
+            display: flex;
+            gap: var(--space-xl);
+            flex-wrap: wrap;
+        }
+        
+        .identity-detail {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .identity-detail i {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .identity-detail-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+        
+        .identity-detail-value {
+            font-size: 13px;
+            color: var(--white);
+            font-weight: 700;
+        }
+        
+        /* ============ INFO SECTIONS ============ */
+        .info-section {
+            margin-bottom: var(--space-xl);
+        }
+        
+        .info-section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--gray-200);
+            position: relative;
+        }
+        
+        .info-section-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            right: 0;
+            width: 32px;
+            height: 2px;
+            background: var(--accent-red);
+        }
+        
+        .info-section-header i {
+            font-size: 16px;
+            color: var(--royal-blue);
+        }
+        
+        .info-section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--white);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+            transition: all var(--transition-fast);
+        }
+        
+        .info-item:hover {
+            border-color: var(--royal-blue);
+            background: var(--gray-50);
+        }
+        
+        .info-item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: var(--blue-light);
+            color: var(--royal-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .info-item-icon i {
+            font-size: 14px;
+        }
+        
+        .info-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .info-item-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-bottom: 2px;
+        }
+        
+        .info-item-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .info-item-value.empty {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+        
+        /* ============ EMPTY STATE ============ */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-xl);
+            color: var(--gray-400);
+        }
+        
+        .empty-state i {
+            font-size: 32px;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* ============ ERROR STATE ============ */
+        .error-state {
+            text-align: center;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+        
+        .error-state-icon {
+            font-size: 40px;
+            color: var(--accent-red);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .error-state-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 10px 20px;
+            background: var(--navy-deep);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-family: var(--font-primary);
+        }
+        
+        .retry-btn:hover {
+            background: var(--royal-blue);
+        }
+        
+        /* ============ LOADING ============ */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            gap: var(--space-lg);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--royal-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+        
+        /* ============ FOOTER ============ */
+        .footer {
+            margin-top: var(--space-3xl);
+            padding-top: var(--space-xl);
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+        
+        .footer-brand {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--navy-deep);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .footer-description {
+            font-size: 12px;
+            color: var(--gray-500);
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+        
+        .footer-founded {
+            font-size: 11px;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+        
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .header {
+                right: 0;
+                padding: 0 var(--space-lg);
+            }
+            
+            .header-toggle {
+                display: flex;
+            }
+            
+            .header-user-info {
+                display: none;
+            }
+            
+            .main-content {
+                margin-right: 0;
+            }
+            
+            .main-inner {
+                padding: var(--space-lg);
+            }
+            
+            .identity-content {
+                flex-direction: column;
+                text-align: center;
+                gap: var(--space-lg);
+            }
+            
+            .identity-details {
+                justify-content: center;
+            }
+            
+            .identity-name {
+                font-size: 20px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-md);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-inner {
+                padding: var(--space-md);
+            }
+            
+            .page-header-title {
+                font-size: 20px;
+            }
+            
+            .identity-card {
+                padding: var(--space-xl);
+            }
+            
+            .identity-avatar {
+                width: 64px;
+                height: 64px;
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="app">
         <div class="loading-container">
             <div class="loading-spinner"></div>
-            <div class="loading-text">جاري التحميل...</div>
+            <div class="loading-text">جاري تحميل الملف الشخصي...</div>
         </div>
     </div>
     
@@ -78,66 +835,166 @@
                 console.error('Error:', error);
                 app.innerHTML = `
                     <div class="error-state">
-                        <div class="error-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="empty-state-title">حدث خطأ أثناء التحميل</div>
-                        <button class="btn btn-primary mt-2" onclick="location.reload()">إعادة المحاولة</button>
+                        <div class="error-state-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="error-state-title">حدث خطأ أثناء تحميل البيانات</div>
+                        <button class="retry-btn" onclick="location.reload()">
+                            <i class="fas fa-redo"></i>
+                            إعادة المحاولة
+                        </button>
                     </div>
                 `;
             }
         }
         
         function buildPage() {
+            const sidebarHTML = renderSidebar(currentUser, currentPage);
+            const headerHTML = renderHeader(currentUser);
+            
+            // استخراج البيانات
+            const studentName = studentData.name || currentUser.name || 'طالب';
+            const studentCode = studentData.studentCode || currentUser.linkedId || '—';
+            const phone = studentData.phone || '—';
+            const stage = stageData?.name || '—';
+            const className = classData?.name || '—';
+            
             app.innerHTML = `
-                <div class="sidebar-overlay" id="sidebarOverlay"></div>
+                <div class="sidebar-overlay" id="sidebarOverlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 38, 71, 0.6); z-index: 950;" onclick="toggleSidebar()"></div>
+                
                 <aside class="sidebar" id="sidebarContainer">
-                    ${renderSidebar(currentUser, currentPage)}
+                    ${sidebarHTML}
                 </aside>
+                
                 <div class="main-content">
                     <header class="header" id="headerContainer">
-                        ${renderHeader(currentUser)}
+                        <div class="header-left">
+                            <button class="header-toggle" onclick="toggleSidebar()">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <h1 class="header-title">الملف الشخصي</h1>
+                        </div>
+                        <div class="header-right">
+                            <div class="header-user">
+                                <div class="header-avatar">${escapeHtml(studentName.charAt(0))}</div>
+                                <div class="header-user-info">
+                                    <div class="header-user-name">${escapeHtml(studentName)}</div>
+                                    <div class="header-user-role">بوابة الطالب</div>
+                                </div>
+                            </div>
+                        </div>
                     </header>
+                    
                     <main class="main-content-inner">
-                        <div class="page-header">
-                            <div>
-                                <h1 class="page-title">ملفي الشخصي</h1>
-                                <p class="page-subtitle">بياناتك الشخصية</p>
+                        <div class="main-inner">
+                            <!-- Page Header -->
+                            <div class="page-header">
+                                <h1 class="page-header-title">الملف الشخصي</h1>
+                                <p class="page-header-description">بياناتك المسجلة في نظام المتابعة الطلابية بمدارس الجيل الجديد الخاصة</p>
+                                <div class="page-header-accent"></div>
                             </div>
-                        </div>
-                        
-                        <!-- Profile Header -->
-                        <div class="profile-header">
-                            <div class="profile-avatar">
-                                ${escapeHtml((studentData.name || 'ط').charAt(0))}
-                            </div>
-                            <h2 class="profile-name">${escapeHtml(studentData.name)}</h2>
-                            <p class="profile-role">طالب</p>
-                        </div>
-                        
-                        <!-- البيانات الشخصية -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">البيانات الشخصية</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="profile-details">
-                                    <div class="profile-detail-item">
-                                        <div class="profile-detail-label">كود الطالب</div>
-                                        <div class="profile-detail-value font-numbers">${escapeHtml(studentData.studentCode || currentUser.linkedId)}</div>
+                            
+                            <!-- Student Identity Card -->
+                            <div class="identity-card">
+                                <div class="identity-content">
+                                    <div class="identity-avatar">
+                                        ${escapeHtml(studentName.charAt(0))}
                                     </div>
-                                    <div class="profile-detail-item">
-                                        <div class="profile-detail-label">المرحلة</div>
-                                        <div class="profile-detail-value">${escapeHtml(stageData?.name || '—')}</div>
-                                    </div>
-                                    <div class="profile-detail-item">
-                                        <div class="profile-detail-label">الفصل</div>
-                                        <div class="profile-detail-value">${escapeHtml(classData?.name || '—')}</div>
-                                    </div>
-                                    <div class="profile-detail-item">
-                                        <div class="profile-detail-label">رقم الهاتف</div>
-                                        <div class="profile-detail-value font-numbers" dir="ltr">${escapeHtml(studentData.phone || '—')}</div>
+                                    <div class="identity-info">
+                                        <div class="identity-name">${escapeHtml(studentName)}</div>
+                                        <div class="identity-role">طالب - مدارس الجيل الجديد الخاصة</div>
+                                        <div class="identity-details">
+                                            <div class="identity-detail">
+                                                <i class="fas fa-id-card"></i>
+                                                <span class="identity-detail-label">كود الطالب:</span>
+                                                <span class="identity-detail-value">${escapeHtml(studentCode)}</span>
+                                            </div>
+                                            <div class="identity-detail">
+                                                <i class="fas fa-graduation-cap"></i>
+                                                <span class="identity-detail-label">المرحلة:</span>
+                                                <span class="identity-detail-value">${escapeHtml(stage)}</span>
+                                            </div>
+                                            <div class="identity-detail">
+                                                <i class="fas fa-users"></i>
+                                                <span class="identity-detail-label">الفصل:</span>
+                                                <span class="identity-detail-value">${escapeHtml(className)}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Basic Information Section -->
+                            <div class="info-section">
+                                <div class="info-section-header">
+                                    <i class="fas fa-user"></i>
+                                    <h2 class="info-section-title">البيانات الأساسية</h2>
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">اسم الطالب</div>
+                                            <div class="info-item-value">${escapeHtml(studentName)}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-id-card"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">كود الطالب</div>
+                                            <div class="info-item-value" style="font-family: var(--font-numbers);">${escapeHtml(studentCode)}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-graduation-cap"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">المرحلة الدراسية</div>
+                                            <div class="info-item-value ${stage === '—' ? 'empty' : ''}">${escapeHtml(stage)}</div>
+                                        </div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">الفصل</div>
+                                            <div class="info-item-value ${className === '—' ? 'empty' : ''}">${escapeHtml(className)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Information Section -->
+                            <div class="info-section">
+                                <div class="info-section-header">
+                                    <i class="fas fa-phone"></i>
+                                    <h2 class="info-section-title">بيانات التواصل</h2>
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-phone"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">رقم الهاتف</div>
+                                            <div class="info-item-value ${phone === '—' ? 'empty' : ''}" style="font-family: var(--font-numbers);" dir="ltr">${escapeHtml(phone)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <footer class="footer">
+                                <div class="footer-brand">مدارس الجيل الجديد الخاصة</div>
+                                <div class="footer-description">نظام المتابعة الطلابية - بوابة إلكترونية رسمية للطلاب</div>
+                                <div class="footer-founded">تأسست عام 1987</div>
+                            </footer>
                         </div>
                     </main>
                 </div>
