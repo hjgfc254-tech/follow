@@ -3,29 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>بوابة الطالب | مدرسة الجيل الجديد</title>
+    <title>بوابة الطالب | مدارس الجيل الجديد الخاصة</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
         :root {
+            /* Primary Brand Colors */
             --navy-deep: #0A2647;
-            --navy: #0F3460;
-            --royal: #1E5FBB;
-            --red: #C92A2A;
-            --accent-red: #E63946;
+            --navy-mid: #0F3460;
+            --royal-blue: #1E5FBB;
+            --blue-light: #EBF3FF;
+            
+            /* Accent Colors */
+            --accent-red: #DC2626;
+            --red-dark: #B91C1C;
             --red-light: #FEE2E2;
+            
+            /* Neutrals */
             --white: #FFFFFF;
-            --soft: #F8FAFC;
-            --ink: #111827;
-            --body: #4B5563;
-            --mute: #9CA3AF;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            
+            /* Typography */
+            --font-primary: 'Cairo', sans-serif;
+            --font-numbers: 'Rubik', sans-serif;
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+            --space-3xl: 48px;
+            
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-xs: 0 1px 2px rgba(10, 38, 71, 0.04);
+            --shadow-sm: 0 1px 3px rgba(10, 38, 71, 0.08);
+            --shadow-md: 0 4px 12px rgba(10, 38, 71, 0.1);
+            --shadow-lg: 0 8px 24px rgba(10, 38, 71, 0.15);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-base: 250ms ease;
+            --transition-slow: 350ms ease;
         }
         
         * {
@@ -35,389 +77,934 @@
         }
         
         body {
-            font-family: 'Cairo', sans-serif;
-            background: #F2F5F9;
+            font-family: var(--font-primary);
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
             min-height: 100vh;
-            color: var(--ink);
             overflow-x: hidden;
         }
         
-        /* ============ Sidebar ============ */
+        /* ============ SIDEBAR ============ */
         .sidebar {
             position: fixed;
             top: 0;
             right: 0;
             bottom: 0;
-            width: 260px;
-            background: linear-gradient(180deg, #0A2647 0%, #0F3460 50%, #1E5FBB 100%);
-            z-index: 100;
+            width: 248px;
+            background: var(--navy-deep);
+            z-index: 1000;
             display: flex;
             flex-direction: column;
-            box-shadow: 4px 0 20px rgba(10, 38, 71, 0.3);
-            transition: all 0.3s;
-            border-left: 3px solid #E63946;
+            box-shadow: 4px 0 16px rgba(10, 38, 71, 0.15);
+            transition: transform var(--transition-base);
         }
         
-        .sidebar-header {
-            padding: 20px;
+        .sidebar-brand {
+            padding: var(--space-xl) var(--space-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-brand-top {
             display: flex;
             align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
         }
         
-        .sidebar-logo-img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--white);
-            object-fit: contain;
-            padding: 3px;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-        
-        .sidebar-logo-fallback {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+        .sidebar-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
             background: var(--white);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 3px;
+        }
+        
+        .sidebar-logo i {
             font-size: 20px;
-            color: var(--royal);
+            color: var(--royal-blue);
         }
         
-        .sidebar-title {
+        .sidebar-brand h1 {
             color: var(--white);
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 800;
+            line-height: 1.3;
         }
         
-        .sidebar-subtitle {
-            color: rgba(255,255,255,0.6);
+        .sidebar-brand p {
+            color: rgba(255, 255, 255, 0.55);
             font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .sidebar-accent {
+            width: 32px;
+            height: 2px;
+            background: var(--accent-red);
+            border-radius: var(--radius-full);
         }
         
         .sidebar-nav {
             flex: 1;
-            padding: 12px 0;
+            padding: var(--space-lg) var(--space-md);
             overflow-y: auto;
         }
         
-        .sidebar-section {
-            padding: 12px 20px 6px;
+        .sidebar-nav-group {
+            margin-bottom: var(--space-lg);
+        }
+        
+        .sidebar-nav-label {
             font-size: 10px;
-            color: rgba(255,255,255,0.4);
             font-weight: 700;
+            color: rgba(255, 255, 255, 0.35);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
+            padding: 0 var(--space-sm);
+            margin-bottom: var(--space-xs);
         }
         
         .sidebar-link {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: rgba(255,255,255,0.7);
+            gap: var(--space-md);
+            padding: 10px var(--space-sm);
+            color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            transition: all 0.3s;
-            border-right: 3px solid transparent;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            position: relative;
         }
         
         .sidebar-link:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.08);
             color: var(--white);
-            border-right-color: #E63946;
         }
         
         .sidebar-link.active {
-            background: rgba(230, 57, 70, 0.2);
+            background: rgba(30, 95, 187, 0.25);
             color: var(--white);
-            border-right-color: #E63946;
+        }
+        
+        .sidebar-link.active::before {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 24px;
+            background: var(--accent-red);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
         }
         
         .sidebar-link i {
-            font-size: 16px;
-            width: 22px;
+            font-size: 15px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-badge {
+            background: var(--accent-red);
+            color: var(--white);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            margin-right: auto;
+            min-width: 20px;
             text-align: center;
         }
         
-        /* ============ Header ============ */
+        .sidebar-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-logout {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: 10px var(--space-sm);
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            font-family: var(--font-primary);
+        }
+        
+        .sidebar-logout:hover {
+            background: rgba(220, 38, 38, 0.15);
+            color: #FCA5A5;
+        }
+        
+        .sidebar-logout i {
+            font-size: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* ============ HEADER ============ */
         .header {
             position: fixed;
             top: 0;
-            right: 260px;
+            right: 248px;
             left: 0;
-            height: 64px;
+            height: 60px;
             background: var(--white);
-            border-bottom: 2px solid #E63946;
+            border-bottom: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            z-index: 90;
-            box-shadow: 0 2px 10px rgba(10, 38, 71, 0.05);
+            padding: 0 var(--space-xl);
+            z-index: 900;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
         }
         
         .header-toggle {
             display: none;
             width: 40px;
             height: 40px;
-            border-radius: 10px;
-            font-size: 18px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             background: none;
-            border: 1px solid #E5E7EB;
-            color: var(--body);
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            font-size: 16px;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .header-toggle:hover {
+            background: var(--gray-100);
+            border-color: var(--royal-blue);
+            color: var(--royal-blue);
+        }
+        
+        .header-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .header-notification {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            color: var(--gray-500);
+        }
+        
+        .header-notification:hover {
+            background: var(--gray-100);
+            color: var(--navy-deep);
+        }
+        
+        .header-notification i {
+            font-size: 16px;
+        }
+        
+        .header-notification .badge {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            background: var(--accent-red);
+            color: var(--white);
+            font-size: 9px;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .header-user {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--space-sm);
         }
         
         .header-avatar {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #0A2647, #1E5FBB);
+            background: var(--navy-deep);
             color: var(--white);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 16px;
-            border: 2px solid #E63946;
+            font-size: 14px;
+        }
+        
+        .header-user-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
         }
         
         .header-user-name {
+            font-size: 13px;
             font-weight: 700;
-            font-size: 14px;
-            color: var(--ink);
+            color: var(--gray-900);
         }
         
         .header-user-role {
-            font-size: 11px;
-            color: var(--mute);
+            font-size: 10px;
+            color: var(--gray-500);
+            font-weight: 600;
         }
         
-        /* ============ Main ============ */
+        /* ============ MAIN CONTENT ============ */
         .main-content {
-            margin-right: 260px;
-            padding-top: 64px;
+            margin-right: 248px;
+            padding-top: 60px;
             min-height: 100vh;
         }
         
         .main-inner {
-            padding: 24px;
-            max-width: 900px;
+            padding: var(--space-xl);
+            max-width: 1000px;
+            margin: 0 auto;
         }
         
-        /* ============ Welcome Banner ============ */
-        .welcome-banner {
-            background: linear-gradient(135deg, #0A2647 0%, #1E5FBB 60%, #E63946 100%);
-            border-radius: 20px;
-            padding: 24px;
-            color: var(--white);
-            margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
-            animation: bannerIn 0.6s ease;
-        }
-        
-        @keyframes bannerIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .welcome-banner::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
-            background-size: 20px 20px;
-            animation: bgMove 20s linear infinite;
-        }
-        
-        @keyframes bgMove {
-            from { transform: rotate(0); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .welcome-banner h1 {
-            font-size: 22px;
-            font-weight: 900;
-            margin-bottom: 4px;
+        /* ============ WELCOME SECTION ============ */
+        .welcome-section {
+            margin-bottom: var(--space-2xl);
             position: relative;
         }
         
-        .welcome-banner p {
-            font-size: 13px;
-            opacity: 0.85;
-            position: relative;
-        }
-        
-        /* ============ Stats ============ */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 18px;
-            text-align: center;
-            border: 1px solid #E5E7EB;
-            border-top: 3px solid;
-            transition: all 0.3s;
-            cursor: pointer;
-            animation: fadeUp 0.5s ease backwards;
-        }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.05s; border-top-color: #1E5FBB; }
-        .stat-card:nth-child(2) { animation-delay: 0.1s; border-top-color: #E63946; }
-        .stat-card:nth-child(3) { animation-delay: 0.15s; border-top-color: #0F3460; }
-        
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(10, 38, 71, 0.1);
-        }
-        
-        .stat-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+        .welcome-content {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            margin: 0 auto 8px;
-        }
-        
-        .stat-card:nth-child(1) .stat-icon { background: #EBF3FF; color: #1E5FBB; }
-        .stat-card:nth-child(2) .stat-icon { background: #FEE2E2; color: #E63946; }
-        .stat-card:nth-child(3) .stat-icon { background: #F0F6FF; color: #0F3460; }
-        
-        .stat-number {
-            font-family: 'Rubik', sans-serif;
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--ink);
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--body);
-        }
-        
-        /* ============ Cards ============ */
-        .content-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid #E5E7EB;
-            transition: all 0.3s;
-        }
-        
-        .content-card:hover {
-            box-shadow: 0 6px 16px rgba(10, 38, 71, 0.08);
-        }
-        
-        .card-header {
-            display: flex;
+            align-items: flex-start;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 2px dashed #F3F4F6;
+            gap: var(--space-xl);
         }
         
-        .card-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #0A2647;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .card-title i {
-            color: #1E5FBB;
-        }
-        
-        .view-all {
-            font-size: 12px;
-            color: #E63946;
-            text-decoration: none;
-            font-weight: 700;
-            transition: color 0.3s;
-        }
-        
-        .view-all:hover {
-            color: #C92A2A;
-        }
-        
-        /* ============ List ============ */
-        .list-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 12px;
-            transition: background 0.3s;
-        }
-        
-        .list-item:hover {
-            background: #F8FAFC;
-        }
-        
-        .list-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-        
-        .list-icon.blue { background: #EBF3FF; color: #1E5FBB; }
-        .list-icon.red { background: #FEE2E2; color: #E63946; }
-        
-        .list-content {
+        .welcome-text {
             flex: 1;
         }
         
-        .list-title {
+        .welcome-greeting {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--royal-blue);
+            margin-bottom: var(--space-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .welcome-greeting::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: var(--accent-red);
+            border-radius: var(--radius-full);
+        }
+        
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--navy-deep);
+            margin-bottom: var(--space-sm);
+            line-height: 1.2;
+        }
+        
+        .welcome-description {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+        
+        .welcome-info {
+            display: flex;
+            gap: var(--space-xl);
+            margin-top: var(--space-lg);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--gray-200);
+        }
+        
+        .welcome-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .welcome-info-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .welcome-info-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .welcome-badge {
+            width: 64px;
+            height: 64px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--navy-deep) 0%, var(--royal-blue) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .welcome-badge::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-red);
+        }
+        
+        .welcome-badge i {
+            font-size: 28px;
+            color: var(--white);
+        }
+        
+        /* ============ QUICK SUMMARY ============ */
+        .summary-section {
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+        
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            padding: var(--space-lg);
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            transition: all var(--transition-base);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .summary-item:hover {
+            border-color: var(--royal-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .summary-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .summary-icon.blue {
+            background: var(--blue-light);
+            color: var(--royal-blue);
+        }
+        
+        .summary-icon.red {
+            background: var(--red-light);
+            color: var(--accent-red);
+        }
+        
+        .summary-icon.gray {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+        
+        .summary-icon i {
+            font-size: 18px;
+        }
+        
+        .summary-content {
+            flex: 1;
+        }
+        
+        .summary-value {
+            font-family: var(--font-numbers);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--navy-deep);
+            line-height: 1.2;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+        
+        .summary-arrow {
+            color: var(--gray-400);
+            font-size: 12px;
+            transition: transform var(--transition-fast);
+        }
+        
+        .summary-item:hover .summary-arrow {
+            transform: translateX(-4px);
+            color: var(--royal-blue);
+        }
+        
+        /* ============ CONTENT SECTIONS ============ */
+        .content-section {
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 2px solid var(--gray-100);
+            position: relative;
+        }
+        
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 40px;
+            height: 2px;
+            background: var(--accent-red);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+        
+        .section-title i {
+            font-size: 16px;
+            color: var(--royal-blue);
+        }
+        
+        .section-link {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--royal-blue);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            transition: color var(--transition-fast);
+        }
+        
+        .section-link:hover {
+            color: var(--accent-red);
+        }
+        
+        .section-link i {
+            font-size: 10px;
+        }
+        
+        /* ============ ANNOUNCEMENTS ============ */
+        .announcements-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .announcement-featured {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            padding: var(--space-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+        
+        .announcement-featured::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-red) 0%, var(--royal-blue) 100%);
+        }
+        
+        .announcement-featured:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--royal-blue);
+        }
+        
+        .announcement-featured-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+        
+        .announcement-featured-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            background: var(--red-light);
+            color: var(--accent-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .announcement-featured-icon i {
+            font-size: 16px;
+        }
+        
+        .announcement-featured-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--gray-900);
+            flex: 1;
+        }
+        
+        .announcement-featured-date {
+            font-size: 11px;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+        
+        .announcement-badge-new {
+            background: var(--accent-red);
+            color: var(--white);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+        }
+        
+        .announcement-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md) var(--space-lg);
+            background: var(--white);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .announcement-item:hover {
+            border-color: var(--royal-blue);
+            background: var(--gray-50);
+        }
+        
+        .announcement-item-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            background: var(--blue-light);
+            color: var(--royal-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .announcement-item-icon i {
+            font-size: 13px;
+        }
+        
+        .announcement-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .announcement-item-title {
             font-size: 13px;
             font-weight: 700;
-            color: var(--ink);
+            color: var(--gray-900);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
-        .list-subtitle {
+        .announcement-item-date {
             font-size: 11px;
-            color: var(--mute);
+            color: var(--gray-500);
+            font-weight: 500;
         }
         
-        /* ============ Responsive ============ */
+        /* ============ MESSAGES ============ */
+        .messages-inline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-lg);
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .messages-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .messages-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--blue-light);
+            color: var(--royal-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .messages-icon i {
+            font-size: 18px;
+        }
+        
+        .messages-text {
+            flex: 1;
+        }
+        
+        .messages-count {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+        
+        .messages-count .highlight {
+            color: var(--accent-red);
+        }
+        
+        .messages-description {
+            font-size: 12px;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+        
+        .messages-action {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 8px 16px;
+            background: var(--navy-deep);
+            color: var(--white);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all var(--transition-fast);
+        }
+        
+        .messages-action:hover {
+            background: var(--royal-blue);
+            transform: translateY(-1px);
+        }
+        
+        /* ============ EVENTS ============ */
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            padding: var(--space-md) var(--space-lg);
+            background: var(--white);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .event-item:hover {
+            border-color: var(--royal-blue);
+            background: var(--gray-50);
+        }
+        
+        .event-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 48px;
+            flex-shrink: 0;
+        }
+        
+        .event-date-day {
+            font-family: var(--font-numbers);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-red);
+            line-height: 1;
+        }
+        
+        .event-date-month {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+        
+        .event-info {
+            flex: 1;
+        }
+        
+        .event-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .event-location {
+            font-size: 11px;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+        
+        .event-arrow {
+            color: var(--gray-400);
+            font-size: 12px;
+            transition: transform var(--transition-fast);
+        }
+        
+        .event-item:hover .event-arrow {
+            transform: translateX(-4px);
+            color: var(--royal-blue);
+        }
+        
+        /* ============ EMPTY STATES ============ */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-xl);
+            color: var(--gray-400);
+        }
+        
+        .empty-state i {
+            font-size: 32px;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* ============ LOADING ============ */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .loading-skeleton {
+            height: 48px;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-md);
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* ============ FOOTER ============ */
+        .footer {
+            margin-top: var(--space-3xl);
+            padding-top: var(--space-xl);
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+        
+        .footer-brand {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--navy-deep);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .footer-description {
+            font-size: 12px;
+            color: var(--gray-500);
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+        
+        .footer-founded {
+            font-size: 11px;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+        
+        /* ============ RESPONSIVE ============ */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(100%);
@@ -429,12 +1016,11 @@
             
             .header {
                 right: 0;
+                padding: 0 var(--space-lg);
             }
             
             .header-toggle {
                 display: flex;
-                align-items: center;
-                justify-content: center;
             }
             
             .header-user-info {
@@ -446,125 +1032,307 @@
             }
             
             .main-inner {
-                padding: 16px;
+                padding: var(--space-lg);
             }
             
-            .stats-grid {
+            .welcome-content {
+                flex-direction: column;
+                gap: var(--space-lg);
+            }
+            
+            .welcome-title {
+                font-size: 24px;
+            }
+            
+            .welcome-info {
+                gap: var(--space-lg);
+            }
+            
+            .summary-grid {
                 grid-template-columns: 1fr;
+                gap: var(--space-md);
+            }
+            
+            .messages-inline {
+                flex-direction: column;
+                gap: var(--space-md);
+                align-items: flex-start;
+            }
+            
+            .messages-action {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-inner {
+                padding: var(--space-md);
+            }
+            
+            .welcome-title {
+                font-size: 20px;
+            }
+            
+            .announcement-featured {
+                padding: var(--space-lg);
+            }
+            
+            .announcement-featured-title {
+                font-size: 14px;
             }
         }
     </style>
 </head>
 <body>
     <!-- Sidebar Overlay -->
-    <div id="sidebarOverlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 38, 71, 0.5); z-index: 95;" onclick="toggleSidebar()"></div>
+    <div id="sidebarOverlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 38, 71, 0.6); z-index: 950;" onclick="toggleSidebar()"></div>
     
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <img src="../index.png" alt="الشعار" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="sidebar-logo-fallback" style="display: none;">
-                <i class="fas fa-graduation-cap"></i>
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-top">
+                <div class="sidebar-logo">
+                    <img src="../index.png" alt="شعار المدرسة" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-graduation-cap\'></i>';">
+                </div>
+                <div>
+                    <h1>مدارس الجيل الجديد</h1>
+                    <p>بوابة المتابعة الطلابية</p>
+                </div>
             </div>
-            <div>
-                <div class="sidebar-title">الجيل الجديد</div>
-                <div class="sidebar-subtitle">بوابة الطالب</div>
-            </div>
+            <div class="sidebar-accent"></div>
         </div>
+        
         <nav class="sidebar-nav">
-            <div class="sidebar-section">القائمة</div>
-            <a href="dashboard.html" class="sidebar-link active">
-                <i class="fas fa-home"></i>
-                الرئيسية
-            </a>
-            <a href="profile.html" class="sidebar-link">
-                <i class="fas fa-user"></i>
-                ملفي
-            </a>
-            <a href="announcements.html" class="sidebar-link">
-                <i class="fas fa-bell"></i>
-                الإعلانات
-            </a>
-            <a href="messages.html" class="sidebar-link">
-                <i class="fas fa-envelope"></i>
-                الرسائل
-            </a>
-            <a href="events.html" class="sidebar-link">
-                <i class="fas fa-calendar-alt"></i>
-                الأحداث
-            </a>
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-label">الرئيسية</div>
+                <a href="dashboard.html" class="sidebar-link active">
+                    <i class="fas fa-home"></i>
+                    لوحة التحكم
+                </a>
+                <a href="profile.html" class="sidebar-link">
+                    <i class="fas fa-user"></i>
+                    الملف الشخصي
+                </a>
+            </div>
+            
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-label">المتابعة</div>
+                <a href="schedule.html" class="sidebar-link">
+                    <i class="fas fa-clock"></i>
+                    الجدول الدراسي
+                </a>
+                <a href="attendance.html" class="sidebar-link">
+                    <i class="fas fa-clipboard-check"></i>
+                    الحضور والغياب
+                </a>
+                <a href="expenses.html" class="sidebar-link">
+                    <i class="fas fa-wallet"></i>
+                    المصروفات
+                </a>
+            </div>
+            
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-label">التواصل</div>
+                <a href="announcements.html" class="sidebar-link">
+                    <i class="fas fa-bullhorn"></i>
+                    الإعلانات
+                    <span class="sidebar-badge" id="sidebarAnnounceBadge" style="display: none;">جديد</span>
+                </a>
+                <a href="messages.html" class="sidebar-link">
+                    <i class="fas fa-envelope"></i>
+                    الرسائل
+                    <span class="sidebar-badge" id="sidebarMsgBadge" style="display: none;">0</span>
+                </a>
+                <a href="events.html" class="sidebar-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    الأحداث
+                </a>
+                <a href="gallery.html" class="sidebar-link">
+                    <i class="fas fa-images"></i>
+                    معرض الصور
+                </a>
+            </div>
         </nav>
-        <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="#" class="sidebar-link" id="logoutBtn" style="padding: 10px 0;">
+        
+        <div class="sidebar-footer">
+            <button class="sidebar-logout" id="logoutBtn">
                 <i class="fas fa-sign-out-alt"></i>
                 تسجيل الخروج
-            </a>
+            </button>
         </div>
     </aside>
     
     <!-- Header -->
     <header class="header">
-        <button class="header-toggle" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="header-user">
-            <div class="header-avatar" id="userInitial">ط</div>
-            <div class="header-user-info">
-                <div class="header-user-name" id="userName">طالب</div>
-                <div class="header-user-role">طالب</div>
+        <div class="header-left">
+            <button class="header-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="header-title">لوحة التحكم</h1>
+        </div>
+        
+        <div class="header-right">
+            <div class="header-notification" onclick="location.href='announcements.html'" title="الإعلانات">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="headerNotifBadge" style="display: none;">0</span>
+            </div>
+            
+            <div class="header-user">
+                <div class="header-avatar" id="userInitial">ط</div>
+                <div class="header-user-info">
+                    <div class="header-user-name" id="userName">طالب</div>
+                    <div class="header-user-role">بوابة الطالب</div>
+                </div>
             </div>
         </div>
     </header>
     
-    <!-- Main -->
+    <!-- Main Content -->
     <main class="main-content">
         <div class="main-inner">
-            <!-- Welcome Banner -->
-            <div class="welcome-banner">
-                <h1 id="welcomeText">أهلًا بك</h1>
-                <p>نتمنى لك يومًا دراسيًا موفقًا</p>
-            </div>
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <div class="welcome-content">
+                    <div class="welcome-text">
+                        <div class="welcome-greeting">نظام المتابعة الطلابية</div>
+                        <h1 class="welcome-title" id="welcomeText">مرحباً بك</h1>
+                        <p class="welcome-description">مرحباً بك في بوابة المتابعة الطلابية بمدارس الجيل الجديد الخاصة</p>
+                        
+                        <div class="welcome-info">
+                            <div class="welcome-info-item">
+                                <span class="welcome-info-label">الصف الدراسي</span>
+                                <span class="welcome-info-value" id="studentGrade">--</span>
+                            </div>
+                            <div class="welcome-info-item">
+                                <span class="welcome-info-label">كود الطالب</span>
+                                <span class="welcome-info-value" id="studentCode">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="welcome-badge">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                </div>
+            </section>
             
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card" onclick="location.href='messages.html'">
-                    <div class="stat-icon"><i class="fas fa-envelope"></i></div>
-                    <div class="stat-number" id="msgCount">0</div>
-                    <div class="stat-label">رسائل جديدة</div>
+            <!-- Quick Summary -->
+            <section class="summary-section">
+                <div class="summary-grid">
+                    <a href="messages.html" class="summary-item">
+                        <div class="summary-icon blue">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="summary-content">
+                            <div class="summary-value" id="msgCount">0</div>
+                            <div class="summary-label">رسائل غير مقروءة</div>
+                        </div>
+                        <i class="fas fa-chevron-left summary-arrow"></i>
+                    </a>
+                    
+                    <a href="announcements.html" class="summary-item">
+                        <div class="summary-icon red">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <div class="summary-content">
+                            <div class="summary-value" id="announceCount">0</div>
+                            <div class="summary-label">إعلانات جديدة</div>
+                        </div>
+                        <i class="fas fa-chevron-left summary-arrow"></i>
+                    </a>
+                    
+                    <a href="events.html" class="summary-item">
+                        <div class="summary-icon gray">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="summary-content">
+                            <div class="summary-value" id="eventCount">0</div>
+                            <div class="summary-label">أحداث قادمة</div>
+                        </div>
+                        <i class="fas fa-chevron-left summary-arrow"></i>
+                    </a>
                 </div>
-                <div class="stat-card" onclick="location.href='announcements.html'">
-                    <div class="stat-icon"><i class="fas fa-bell"></i></div>
-                    <div class="stat-number" id="announceCount">0</div>
-                    <div class="stat-label">إعلانات</div>
-                </div>
-                <div class="stat-card" onclick="location.href='events.html'">
-                    <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
-                    <div class="stat-number" id="eventCount">0</div>
-                    <div class="stat-label">أحداث</div>
-                </div>
-            </div>
+            </section>
             
-            <!-- Announcements -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-title"><i class="fas fa-bullhorn"></i> آخر الإعلانات</div>
-                    <a href="announcements.html" class="view-all">عرض الكل</a>
+            <!-- Announcements Section -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-bullhorn"></i>
+                        آخر الإعلانات
+                    </h2>
+                    <a href="announcements.html" class="section-link">
+                        عرض الكل
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
+                
                 <div id="announcementsList">
-                    <p style="color: #9CA3AF; text-align: center; font-size: 13px;">جاري التحميل...</p>
+                    <div class="loading-state">
+                        <div class="loading-skeleton"></div>
+                        <div class="loading-skeleton"></div>
+                        <div class="loading-skeleton"></div>
+                    </div>
                 </div>
-            </div>
+            </section>
             
-            <!-- Events -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-title"><i class="fas fa-star"></i> الأحداث القادمة</div>
-                    <a href="events.html" class="view-all">عرض الكل</a>
+            <!-- Messages Summary -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-envelope"></i>
+                        الرسائل
+                    </h2>
+                    <a href="messages.html" class="section-link">
+                        عرض الكل
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
+                
+                <div class="messages-inline">
+                    <div class="messages-info">
+                        <div class="messages-icon">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <div class="messages-text">
+                            <div class="messages-count" id="messagesSummary">لا توجد رسائل غير مقروءة</div>
+                            <div class="messages-description">آخر تحديث للرسائل المستلمة</div>
+                        </div>
+                    </div>
+                    <a href="messages.html" class="messages-action">
+                        عرض الرسائل
+                    </a>
+                </div>
+            </section>
+            
+            <!-- Events Section -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        الأحداث القادمة
+                    </h2>
+                    <a href="events.html" class="section-link">
+                        عرض الكل
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                </div>
+                
                 <div id="eventsList">
-                    <p style="color: #9CA3AF; text-align: center; font-size: 13px;">جاري التحميل...</p>
+                    <div class="loading-state">
+                        <div class="loading-skeleton"></div>
+                        <div class="loading-skeleton"></div>
+                    </div>
                 </div>
-            </div>
+            </section>
+            
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="footer-brand">مدارس الجيل الجديد الخاصة</div>
+                <div class="footer-description">نظام المتابعة الطلابية - بوابة إلكترونية رسمية للطلاب</div>
+                <div class="footer-founded">تأسست عام 1987</div>
+            </footer>
         </div>
     </main>
     
@@ -592,59 +1360,157 @@
                 const user = await requireAuth('student');
                 if (!user) return;
                 
+                // Update user info
                 document.getElementById('userName').textContent = user.name || 'طالب';
                 document.getElementById('userInitial').textContent = (user.name || 'ط').charAt(0);
-                document.getElementById('welcomeText').textContent = `أهلًا ${user.name}`;
+                document.getElementById('welcomeText').textContent = `مرحباً، ${user.name}`;
                 
+                // Update student info if available
+                if (user.grade) {
+                    document.getElementById('studentGrade').textContent = user.grade;
+                }
+                if (user.code) {
+                    document.getElementById('studentCode').textContent = user.code;
+                }
+                
+                // Load data
                 const [announcements, messages, events] = await Promise.all([
                     getDocuments('announcements', [
                         { field: 'status', operator: '==', value: 'published' }
                     ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
                     getDocuments('messages', [
                         { field: 'receiverId', operator: '==', value: user.code }
-                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 5 }),
+                    ], { orderBy: 'createdAt', orderDirection: 'desc', limit: 10 }),
                     getDocuments('events', [
                         { field: 'status', operator: '==', value: 'published' }
                     ], { orderBy: 'date', orderDirection: 'asc', limit: 5 })
                 ]);
                 
+                // Update summary counts
                 const unreadMessages = messages.filter(m => !m.isRead).length;
                 document.getElementById('msgCount').textContent = unreadMessages;
                 document.getElementById('announceCount').textContent = announcements.length;
                 document.getElementById('eventCount').textContent = events.length;
                 
-                const announcementsList = document.getElementById('announcementsList');
-                if (announcements.length > 0) {
-                    announcementsList.innerHTML = announcements.map(a => `
-                        <div class="list-item">
-                            <div class="list-icon blue"><i class="fas fa-bullhorn"></i></div>
-                            <div class="list-content">
-                                <div class="list-title">${a.title}</div>
-                                <div class="list-subtitle">${formatDate(a.createdAt)}</div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    announcementsList.innerHTML = '<p style="color: #9CA3AF; text-align: center; font-size: 13px;">لا توجد إعلانات</p>';
+                // Update messages summary
+                if (unreadMessages > 0) {
+                    document.getElementById('messagesSummary').innerHTML = 
+                        `لديك <span class="highlight">${unreadMessages}</span> رسائل غير مقروءة`;
                 }
                 
+                // Update badges
+                if (unreadMessages > 0) {
+                    const msgBadge = document.getElementById('sidebarMsgBadge');
+                    msgBadge.textContent = unreadMessages;
+                    msgBadge.style.display = 'inline';
+                    
+                    const notifBadge = document.getElementById('headerNotifBadge');
+                    notifBadge.textContent = unreadMessages;
+                    notifBadge.style.display = 'flex';
+                }
+                
+                if (announcements.length > 0) {
+                    document.getElementById('sidebarAnnounceBadge').style.display = 'inline';
+                }
+                
+                // Render announcements
+                const announcementsList = document.getElementById('announcementsList');
+                if (announcements.length > 0) {
+                    const featured = announcements[0];
+                    const rest = announcements.slice(1);
+                    
+                    let html = `
+                        <div class="announcements-list">
+                            <div class="announcement-featured" onclick="location.href='announcements.html'">
+                                <div class="announcement-featured-header">
+                                    <div class="announcement-featured-icon">
+                                        <i class="fas fa-bullhorn"></i>
+                                    </div>
+                                    <div class="announcement-featured-title">${featured.title}</div>
+                                    <span class="announcement-badge-new">جديد</span>
+                                    <div class="announcement-featured-date">${formatDate(featured.createdAt)}</div>
+                                </div>
+                            </div>
+                    `;
+                    
+                    rest.forEach(a => {
+                        html += `
+                            <div class="announcement-item" onclick="location.href='announcements.html'">
+                                <div class="announcement-item-icon">
+                                    <i class="fas fa-bullhorn"></i>
+                                </div>
+                                <div class="announcement-item-content">
+                                    <div class="announcement-item-title">${a.title}</div>
+                                    <div class="announcement-item-date">${formatDate(a.createdAt)}</div>
+                                </div>
+                                <i class="fas fa-chevron-left summary-arrow"></i>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    announcementsList.innerHTML = html;
+                } else {
+                    announcementsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-bullhorn"></i>
+                            <p>لا توجد إعلانات حالياً</p>
+                        </div>
+                    `;
+                }
+                
+                // Render events
                 const eventsList = document.getElementById('eventsList');
                 if (events.length > 0) {
-                    eventsList.innerHTML = events.map(e => `
-                        <div class="list-item">
-                            <div class="list-icon red"><i class="fas fa-star"></i></div>
-                            <div class="list-content">
-                                <div class="list-title">${e.title}</div>
-                                <div class="list-subtitle">${formatDate(e.date)}</div>
-                            </div>
+                    eventsList.innerHTML = `
+                        <div class="events-list">
+                            ${events.map(e => {
+                                const eventDate = new Date(e.date);
+                                const day = eventDate.getDate();
+                                const month = eventDate.toLocaleDateString('ar', { month: 'short' });
+                                
+                                return `
+                                    <div class="event-item" onclick="location.href='events.html'">
+                                        <div class="event-date">
+                                            <span class="event-date-day">${day}</span>
+                                            <span class="event-date-month">${month}</span>
+                                        </div>
+                                        <div class="event-info">
+                                            <div class="event-title">${e.title}</div>
+                                            ${e.location ? `<div class="event-location">${e.location}</div>` : ''}
+                                        </div>
+                                        <i class="fas fa-chevron-left event-arrow"></i>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
-                    `).join('');
+                    `;
                 } else {
-                    eventsList.innerHTML = '<p style="color: #9CA3AF; text-align: center; font-size: 13px;">لا توجد أحداث</p>';
+                    eventsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-alt"></i>
+                            <p>لا توجد أحداث قادمة</p>
+                        </div>
+                    `;
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
+                
+                // Show error states
+                document.getElementById('announcementsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>تعذر تحميل البيانات</p>
+                    </div>
+                `;
+                
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>تعذر تحميل البيانات</p>
+                    </div>
+                `;
             }
         }
         
