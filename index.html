@@ -82,8 +82,14 @@
         }
         
         @keyframes cardIn {
-            from { opacity: 0; transform: translateY(40px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
         .top-bar {
@@ -118,8 +124,16 @@
         }
         
         @keyframes logoPulse {
-            0%, 100% { box-shadow: 0 12px 30px rgba(10, 38, 71, 0.2), 0 0 0 4px rgba(30, 95, 187, 0.1); }
-            50% { box-shadow: 0 12px 40px rgba(10, 38, 71, 0.3), 0 0 0 8px rgba(30, 95, 187, 0.05); }
+            0%, 100% {
+                box-shadow:
+                    0 12px 30px rgba(10, 38, 71, 0.2),
+                    0 0 0 4px rgba(30, 95, 187, 0.1);
+            }
+            50% {
+                box-shadow:
+                    0 12px 40px rgba(10, 38, 71, 0.3),
+                    0 0 0 8px rgba(30, 95, 187, 0.05);
+            }
         }
         
         .logo-img {
@@ -176,14 +190,13 @@
             font-weight: 600;
         }
         
-        /* ============ الأزرار المذهلة ============ */
+        /* ============ الأزرار ============ */
         .role-buttons {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
         
-        /* زر الطالب - مذهل */
         .student-btn {
             display: flex;
             align-items: center;
@@ -265,7 +278,7 @@
             50% { transform: scale(1.1); }
         }
         
-        /* الأزرار الجانبية - مذهلة */
+        /* ============ الأزرار الجانبية ============ */
         .side-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -366,73 +379,278 @@
             font-size: 11px;
             color: #9CA3AF;
         }
-        
+        /* =========================================================
+           PERMANENT SYSTEM WARNING
+           
+           هذه الطبقة لا تحتوي على زر إغلاق.
+           لا يوجد JavaScript لإخفائها.
+           لا يمكن الضغط على الصفحة الموجودة خلفها.
+           ========================================================= */
+        .system-warning-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            background: rgba(3, 12, 25, 0.76);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 99999;
+            cursor: not-allowed;
+            animation: warningOverlayIn 0.45s ease-out;
+        }
+        @keyframes warningOverlayIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        /* ============ صندوق الرسالة ============ */
+        .system-warning {
+            width: 100%;
+            max-width: 470px;
+            background: #FFFFFF;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                0 35px 90px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.25);
+            text-align: center;
+            cursor: default;
+            animation: warningCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        @keyframes warningCardIn {
+            from {
+                opacity: 0;
+                transform: translateY(35px) scale(0.88);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        /* ============ الخط الأحمر العلوي ============ */
+        .warning-top {
+            height: 7px;
+            background:
+                linear-gradient(
+                    90deg,
+                    #991B1B,
+                    #DC2626,
+                    #EF4444,
+                    #DC2626,
+                    #991B1B
+                );
+        }
+        /* ============ محتوى التحذير ============ */
+        .warning-content {
+            padding: 32px 30px 30px;
+        }
+        /* ============ علامة التحذير الحمراء ============ */
+        .warning-icon {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: #FEF2F2;
+            border: 5px solid #FEE2E2;
+            color: #DC2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow:
+                0 10px 28px rgba(220, 38, 38, 0.18),
+                0 0 0 9px rgba(220, 38, 38, 0.04);
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+        @keyframes warningPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow:
+                    0 10px 28px rgba(220, 38, 38, 0.18),
+                    0 0 0 9px rgba(220, 38, 38, 0.04);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow:
+                    0 12px 34px rgba(220, 38, 38, 0.28),
+                    0 0 0 13px rgba(220, 38, 38, 0.06);
+            }
+        }
+        /* ============ العنوان ============ */
+        .warning-title {
+            font-family: 'Rubik', sans-serif;
+            color: #111827;
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            direction: ltr;
+            letter-spacing: -0.3px;
+        }
+        /* ============ نص الرسالة ============ */
+        .warning-message {
+            font-family: 'Rubik', sans-serif;
+            color: #4B5563;
+            font-size: 15px;
+            line-height: 1.8;
+            font-weight: 400;
+            direction: ltr;
+            text-align: center;
+            margin: 0 auto;
+            max-width: 400px;
+        }
+        .warning-message strong {
+            color: #B91C1C;
+            font-weight: 700;
+        }
+        /* ============ الخط الفاصل ============ */
+        .warning-divider {
+            width: 100%;
+            height: 1px;
+            background: #E5E7EB;
+            margin: 24px 0 18px;
+        }
+        /* ============ الملاحظة السفلية ============ */
+        .warning-admin-note {
+            font-family: 'Rubik', sans-serif;
+            font-size: 12px;
+            color: #9CA3AF;
+            direction: ltr;
+            line-height: 1.6;
+            margin: 0;
+        }
+        /* =========================================================
+           IMPORTANT
+           
+           لا يوجد زر إغلاق.
+           لا يوجد onclick لإخفاء التحذير.
+           لا يوجد Escape handler.
+           الـoverlay موجود دائمًا طالما هذا العنصر موجود في HTML.
+           
+           لإتاحة الموقع مرة أخرى:
+           قم أنت بتعديل/حذف هذا الـoverlay من الكود.
+           ========================================================= */
         /* ============ الموبايل ============ */
         @media (max-width: 400px) {
             .card-content {
                 padding: 20px 14px 16px;
             }
-            
             .logo-wrapper {
                 width: 110px;
                 height: 110px;
             }
-            
             .school-name {
                 font-size: 22px;
             }
-            
             .student-btn {
                 padding: 18px;
                 font-size: 17px;
             }
-            
             .student-btn .btn-icon-wrap {
                 width: 40px;
                 height: 40px;
                 font-size: 18px;
             }
-            
             .side-btn {
                 padding: 12px;
                 font-size: 13px;
                 border-radius: 20px;
             }
-            
             .side-btn i {
                 font-size: 15px;
+            }
+            /* Warning */
+            .system-warning-overlay {
+                padding: 16px;
+            }
+            .system-warning {
+                max-width: 100%;
+                border-radius: 23px;
+            }
+            .warning-content {
+                padding: 26px 20px 25px;
+            }
+            .warning-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 32px;
+                border-width: 4px;
+                margin-bottom: 16px;
+            }
+            .warning-title {
+                font-size: 22px;
+            }
+            .warning-message {
+                font-size: 14px;
+                line-height: 1.75;
+            }
+            .warning-divider {
+                margin: 21px 0 16px;
+            }
+            .warning-admin-note {
+                font-size: 11px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- =========================================================
+         MAIN PAGE
+         ========================================================= -->
     <div class="main-card">
         <div class="top-bar"></div>
         
         <div class="card-content">
             <!-- الشعار -->
             <div class="logo-wrapper">
-                <img src="index.png" alt="شعار المدرسة" class="logo-img" id="logoImg" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
-                <div id="logoFallback" class="logo-fallback" style="display: none;">
+                <img
+                    src="index.png"
+                    alt="شعار المدرسة"
+                    class="logo-img"
+                    id="logoImg"
+                    onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';"
+                >
+                <div
+                    id="logoFallback"
+                    class="logo-fallback"
+                    style="display: none;"
+                >
                     <i class="fas fa-graduation-cap"></i>
                 </div>
             </div>
             
             <!-- اسم المدرسة -->
-            <h1 class="school-name">مدرسة الجيل الجديد</h1>
-            <p class="school-slogan">أمل نحو المستقبل</p>
+            <h1 class="school-name">
+                مدرسة الجيل الجديد
+            </h1>
+            <p class="school-slogan">
+                أمل نحو المستقبل
+            </p>
             
             <!-- فاصل -->
             <div class="divider">
                 <div class="divider-line"></div>
-                <span class="divider-text">اختر نوع الدخول</span>
+                <span class="divider-text">
+                    اختر نوع الدخول
+                </span>
                 <div class="divider-line"></div>
             </div>
             
             <!-- الأزرار -->
             <div class="role-buttons">
                 <!-- دخول الطالب -->
-                <button class="student-btn" onclick="navigateTo('student')">
+                <button
+                    class="student-btn"
+                    onclick="navigateTo('student')"
+                >
                     <span class="btn-icon-wrap">
                         <i class="fas fa-user-graduate"></i>
                     </span>
@@ -441,12 +659,18 @@
                 
                 <!-- دخول المعلم والإدارة -->
                 <div class="side-buttons">
-                    <button class="side-btn teacher" onclick="navigateTo('teacher')">
+                    <button
+                        class="side-btn teacher"
+                        onclick="navigateTo('teacher')"
+                    >
                         <i class="fas fa-chalkboard-teacher"></i>
                         دخول المعلم
                     </button>
                     
-                    <button class="side-btn admin" onclick="navigateTo('admin')">
+                    <button
+                        class="side-btn admin"
+                        onclick="navigateTo('admin')"
+                    >
                         <i class="fas fa-user-shield"></i>
                         دخول الإدارة
                     </button>
@@ -459,7 +683,61 @@
             </div>
         </div>
     </div>
-    
+    <!-- =========================================================
+         PERMANENT SYSTEM WARNING
+         
+         هذه الرسالة تمنع الوصول إلى الموقع.
+         لا يوجد زر تخطي.
+         لا يوجد زر إغلاق.
+         ========================================================= -->
+    <div
+        class="system-warning-overlay"
+        id="systemWarningOverlay"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="warningTitle"
+        aria-describedby="warningMessage"
+    >
+        <div class="system-warning">
+            <!-- الخط الأحمر -->
+            <div class="warning-top"></div>
+            <div class="warning-content">
+                <!-- أيقونة التحذير -->
+                <div class="warning-icon">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <!-- عنوان -->
+                <h2
+                    class="warning-title"
+                    id="warningTitle"
+                >
+                    System Notice
+                </h2>
+                <!-- الرسالة -->
+                <p
+                    class="warning-message"
+                    id="warningMessage"
+                >
+                    This website is currently operating with
+                    <strong>limited functionality</strong>
+                    because the required database service has not been configured yet.
+                    <br><br>
+                    Some features may not work correctly until the database service
+                    is activated and properly connected to the system.
+                </p>
+                <!-- فاصل -->
+                <div class="warning-divider"></div>
+                <!-- الملاحظة -->
+                <p class="warning-admin-note">
+                    Access to the system is currently unavailable.
+                    Please contact the system administrator for further information.
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- =========================================================
+         ORIGINAL NAVIGATION
+         ========================================================= -->
     <script>
         function navigateTo(role) {
             const routes = {
@@ -467,7 +745,8 @@
                 teacher: 'teacher/login.html',
                 student: 'student/login.html'
             };
-            window.location.href = routes[role] || 'index.html';
+            window.location.href =
+                routes[role] || 'index.html';
         }
     </script>
 </body>
